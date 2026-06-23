@@ -16,12 +16,13 @@ Specs are written and the project is ready to start Phase 1. No application code
 ## Completed
 
 - [x] 2026-06-23 — Initial `ai_specs/` set written (overview, features, architecture-planning, domain-knowledge, llm-integration, conventions, auth-security, deployment)
+- [x] 2026-06-23 — Repo scaffolded per `architecture-planning.md`: full `backend/` and `frontend/` directory structure, all Python packages, SQLAlchemy models, Pydantic schemas, route stubs, service stubs, LLM layer (`prompts.py`, `service.py`, `agents.py`, `orchestrator.py`), Alembic setup, React pages, hooks, service modules, `.gitignore`, `.env.example` files
 
 ---
 
 ## In Progress
 
-- [ ] _(nothing in progress yet — implementation not started)_
+- [ ] _(nothing in progress yet)_
 
 ---
 
@@ -36,9 +37,9 @@ Specs are written and the project is ready to start Phase 1. No application code
 
 ## Up Next
 
-- [ ] Scaffold repo per `architecture-planning.md` (frontend + backend folders)
-- [ ] Implement Feature 1 (Temple Google SSO + session)
-- [ ] Implement Feature 2 (profile intake: resume + LinkedIn + ranked-roles questionnaire) and the Postgres/Mongo schema
+- [ ] Implement Feature 1 (Temple Google SSO + session): `backend/app/routes/auth.py` — complete `login`, `me`, and `logout`; add `get_current_user` FastAPI dependency; wire refresh cookie
+- [ ] Implement Feature 2 (profile intake: resume + LinkedIn + ranked-roles questionnaire): `profile_service.py`, `profile.py` route, resume upload + pypdf/python-docx parsing, MongoDB `resumes` + `linkedin` inserts
+- [ ] Run `alembic revision --autogenerate` to generate the initial migration for `users`, `profiles`, `target_roles` tables
 
 ---
 
@@ -47,3 +48,4 @@ Specs are written and the project is ready to start Phase 1. No application code
 | Date | What Was Done |
 |------|---------------|
 | 2026-06-23 | Authored the complete filled-in `ai_specs/` set for Clara, plus `CLAUDE.md` and `progress.md` |
+| 2026-06-23 | Scaffolded full repo: backend FastAPI app (models, schemas, routes, services, LLM layer, Alembic), frontend Vite+React app (pages, hooks, services), `.gitignore`, `.env.example` files |
