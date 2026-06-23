@@ -39,7 +39,7 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 
 ## Up Next
 
-- [ ] Run initial Alembic migration: `alembic revision --autogenerate -m "initial"` (requires `DATABASE_URL` in `.env`)
+- [x] Run initial Alembic migration: `alembic revision --autogenerate -m "initial"` (completed 2026-06-23)
 - [ ] Feature 4: AI assessment — implement `assessment_service.run_assessment` (load profile + resume text, call orchestrator, persist to MongoDB `assessments`), wire `POST /api/assessment` and `GET /api/assessment`; add atomic quota check on `users.llm_generation_count`
 - [ ] Feature 5: generate three tailored resumes — implement `assessment_service.generate_resumes` (call resume agent once per ranked role, persist to MongoDB `resumes` with `kind='generated'`), wire `POST /api/resumes/generate` and `GET /api/resumes`; frontend `Assessment.jsx` and `Resumes.jsx`
 
@@ -53,3 +53,5 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 | 2026-06-23 | Scaffolded full repo: backend FastAPI app (models, schemas, routes, services, LLM layer, Alembic), frontend Vite+React app (pages, hooks, services), `.gitignore`, `.env.example` files |
 | 2026-06-23 | Implemented Feature 1: Google SSO auth backend (JWT, `get_current_user`, login/refresh/logout routes), frontend `AuthProvider`, `SignIn` page with GIS button, `ProtectedRoute` |
 | 2026-06-23 | Implemented Feature 2: profile service, GET/PUT /api/profile, resume upload (pypdf/docx + MongoDB-first write), LinkedIn URL submit; Intake page with pre-fill, Dashboard with completion status |
+| 2026-06-23 | Set up Docker Compose local databases (PostgreSQL/MongoDB), configured `.env` templates, fixed `pymongo`/`motor` driver version conflicts, created Alembic templates, ran database migrations, repaired and verified unit tests, and added Vite proxy configurations |
+

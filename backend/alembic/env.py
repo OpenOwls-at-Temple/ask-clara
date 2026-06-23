@@ -7,6 +7,7 @@ from alembic import context
 
 from app.models.user import Base as UserBase
 from app.models.profile import Profile, TargetRole  # noqa: F401 — registers tables
+from app.config import settings
 
 config = context.config
 if config.config_file_name is not None:
@@ -14,7 +15,7 @@ if config.config_file_name is not None:
 
 target_metadata = UserBase.metadata
 
-url = os.environ.get("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+url = settings.database_url
 
 
 def run_migrations_offline() -> None:

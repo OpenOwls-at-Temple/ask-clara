@@ -60,12 +60,18 @@ async def test_login_rejects_non_temple_email():
         with patch("app.config.settings") as mock_settings:
             mock_settings.allowed_email_domain = "temple.edu"
             mock_settings.google_client_id = "fake-client-id"
-            from app.routes.auth import login
-            from fastapi import HTTPException
+            from app.routes.auth import login, LoginRequest
+            from fastapi import HTTPException, Response
             import pytest
 
-            with pytest.raises(Exception):
-                pass  # Full integration test requires TestClient setup
+            body = LoginRequest(credential="fake-credential")
+            response = Response()
+            db = AsyncMock()
+
+            with pytest.raises(HTTPException) as exc_info:
+                await login(body, response, db)
+            assert exc_info.value.status_code == 403
+            assert "Sign-in is restricted to @temple.edu accounts" in exc_info.value.detail
 
 
 def test_student_cannot_use_another_users_token():

@@ -13,7 +13,7 @@ async def upsert_user(db: AsyncSession, *, email: str, display_name: str) -> Use
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     if user is None:
         user = User(
             id=uuid.uuid4(),

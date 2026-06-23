@@ -21,7 +21,7 @@ async def get_profile(db: AsyncSession, user_id: uuid.UUID) -> Profile | None:
 
 async def upsert_profile(db: AsyncSession, user_id: uuid.UUID, data: ProfileIn) -> Profile:
     profile = await get_profile(db, user_id)
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     if profile is None:
         profile = Profile(id=uuid.uuid4(), user_id=user_id, updated_at=now)
@@ -67,11 +67,11 @@ async def set_resume_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str) -
         profile = Profile(
             id=uuid.uuid4(),
             user_id=user_id,
-            updated_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         db.add(profile)
     profile.resume_doc_id = doc_id
-    profile.updated_at = datetime.now(timezone.utc)
+    profile.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await db.commit()
 
 
@@ -81,9 +81,9 @@ async def set_linkedin_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str)
         profile = Profile(
             id=uuid.uuid4(),
             user_id=user_id,
-            updated_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc).replace(tzinfo=None),
         )
         db.add(profile)
     profile.linkedin_doc_id = doc_id
-    profile.updated_at = datetime.now(timezone.utc)
+    profile.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await db.commit()
