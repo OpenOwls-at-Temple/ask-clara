@@ -13,7 +13,7 @@ from app.llm.service import call_llm, FALLBACK_MESSAGE
 logger = logging.getLogger(__name__)
 
 ASSESSMENT_MAX_OUTPUT = 2000
-RESUME_MAX_OUTPUT = 1200
+RESUME_MAX_OUTPUT = 3000
 
 
 def _extract_json(raw: str) -> str:
