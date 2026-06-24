@@ -25,7 +25,7 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 
 ## In Progress
 
-- [ ] _(nothing in progress yet)_
+- [ ] Feature 5: generate three tailored resumes (next up)
 
 ---
 
@@ -44,7 +44,8 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 
 - [x] Run initial Alembic migration: `alembic revision --autogenerate -m "initial"` (completed 2026-06-23)
 - [x] Feature 4: AI assessment — complete (see 2026-06-24 entry above)
-- [ ] Feature 5: generate three tailored resumes — implement `assessment_service.generate_resumes` (call resume agent once per ranked role, persist to MongoDB `resumes` with `kind='generated'`), wire `POST /api/resumes/generate` and `GET /api/resumes`; frontend `Assessment.jsx` and `Resumes.jsx`
+- [x] Frontend UI redesign — complete (see 2026-06-24 entry below)
+- [ ] Feature 5: generate three tailored resumes — implement `assessment_service.generate_resumes` (call resume agent once per ranked role, persist to MongoDB `resumes` with `kind='generated'`), wire `POST /api/resumes/generate` and `GET /api/resumes`; frontend `Resumes.jsx`
 
 ---
 
@@ -59,4 +60,5 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 | 2026-06-23 | Set up Docker Compose local databases (PostgreSQL/MongoDB), configured `.env` templates, fixed `pymongo`/`motor` driver version conflicts, created Alembic templates, ran database migrations, repaired and verified unit tests, and added Vite proxy configurations |
 | 2026-06-24 | Implemented Feature 4: assessment service, POST/GET /api/assessment routes with atomic quota gate, Assessment.jsx frontend page, 7 new passing tests |
 | 2026-06-24 | E2E browser tested Feature 4 with real Anthropic API. Fixed three LLM bugs: JSON schema not specified in prompt (model invented own schema), `_strip_code_fences` not robust to prose-prefixed responses, `ASSESSMENT_MAX_OUTPUT=600` truncating the response mid-JSON |
+| 2026-06-24 | Complete frontend UI redesign: built `src/index.css` design system with Temple cherry red tokens, custom typography scale, button/form/card/badge components; redesigned SignIn (dark hero split layout with radial glow + dot grid, white auth panel), Dashboard (progress card grid with left-border status accents), Intake (form cards with 2-column grid, cherry-numbered ranked roles, upload zone), Assessment (color-coded result items — green strengths, amber gaps, cherry recommendations); added shared `NavBar.jsx` component with sticky dark bar, cherry stripe, and active nav state; no CSS framework used |
 
