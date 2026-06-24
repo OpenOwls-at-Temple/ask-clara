@@ -19,6 +19,18 @@ export async function request(path, options = {}) {
   return res.json();
 }
 
+export async function requestBlob(path, options = {}) {
+  const headers = { ...options.headers };
+  if (_token) headers["Authorization"] = `Bearer ${_token}`;
+  const res = await fetch(`${BASE}${path}`, {
+    credentials: "include",
+    ...options,
+    headers,
+  });
+  if (!res.ok) throw new Error(String(res.status));
+  return res.blob();
+}
+
 export const getMe = () => request("/auth/me");
 
 export const login = (credential) =>

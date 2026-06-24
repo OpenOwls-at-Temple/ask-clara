@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getProfile, updateProfile, uploadResume, submitLinkedIn } from "../services/profile";
+import { getProfile, updateProfile, uploadResume, submitLinkedIn, uploadLinkedInExport } from "../services/profile";
 
 export function useProfile() {
   const [profile, setProfile] = useState(null);
@@ -44,5 +44,11 @@ export function useProfile() {
     return data;
   }
 
-  return { profile, loading, error, save, saveResume, saveLinkedIn, reload: load };
+  async function saveLinkedInExport(file) {
+    const data = await uploadLinkedInExport(file);
+    setProfile((prev) => ({ ...prev, linkedin_doc_id: data.linkedin_doc_id }));
+    return data;
+  }
+
+  return { profile, loading, error, save, saveResume, saveLinkedIn, saveLinkedInExport, reload: load };
 }

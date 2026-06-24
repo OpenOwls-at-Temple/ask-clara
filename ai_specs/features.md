@@ -27,9 +27,9 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** my profile and documents are saved securely and tied to me.
 
 **Acceptance Criteria:**
-- [ ] Given I have a valid `@temple.edu` Google account, when I sign in, then an account is created or resumed and I land on my dashboard.
-- [ ] Given I am not signed in, when I try to open any profile or assessment page, then I am redirected to sign in.
-- [ ] Given I sign out, when I return, then I can sign back in and my saved data is still there.
+- [x] Given I have a valid `@temple.edu` Google account, when I sign in, then an account is created or resumed and I land on my dashboard.
+- [x] Given I am not signed in, when I try to open any profile or assessment page, then I am redirected to sign in.
+- [x] Given I sign out, when I return, then I can sign back in and my saved data is still there.
 
 ---
 
@@ -39,11 +39,11 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** Clara understands my background and goals.
 
 **Acceptance Criteria:**
-- [ ] Given I am on the intake page, when I upload a PDF or DOCX resume, then its text is parsed and stored and I see a confirmation.
-- [ ] Given I provide a LinkedIn profile (URL or exported PDF), when I submit it, then the relevant content is captured and stored with my profile.
-- [ ] Given the questionnaire, when I answer it, then I can record my major/program, degree level (undergrad / grad / PhD), intended track (industry / academia / government / undecided), and graduation timeline.
-- [ ] Given the "dream job" question, when I respond, then I can enter **three** target roles **ranked** by preference (1–3).
-- [ ] Given I leave and return, when I reopen intake, then my previous answers are pre-filled and editable.
+- [x] Given I am on the intake page, when I upload a PDF or DOCX resume, then its text is parsed and stored and I see a confirmation.
+- [x] Given I provide a LinkedIn profile (URL or exported PDF), when I submit it, then the relevant content is captured and stored with my profile.
+- [x] Given the questionnaire, when I answer it, then I can record my major/program, degree level (undergrad / grad / PhD), intended track (industry / academia / government / undecided), and graduation timeline.
+- [x] Given the "dream job" question, when I respond, then I can enter **three** target roles **ranked** by preference (1–3).
+- [x] Given I leave and return, when I reopen intake, then my previous answers are pre-filled and editable.
 
 ---
 
@@ -53,9 +53,9 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** Clara acts as a persistent coach rather than a one-off tool.
 
 **Acceptance Criteria:**
-- [ ] Given I completed intake, when I log in later, then my profile, ranked preferences, and uploaded documents are loaded.
-- [ ] Given I edit my profile, when I save, then the change persists and is reflected in future assessments.
-- [ ] Given I view my profile, when it loads, then I only ever see my own data — never another student's.
+- [x] Given I completed intake, when I log in later, then my profile, ranked preferences, and uploaded documents are loaded.
+- [x] Given I edit my profile, when I save, then the change persists and is reflected in future assessments.
+- [x] Given I view my profile, when it loads, then I only ever see my own data — never another student's.
 
 ---
 
@@ -65,10 +65,10 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** I learn my strengths, gaps, and next steps.
 
 **Acceptance Criteria:**
-- [ ] Given a complete profile, when I request an assessment, then Clara returns identified strengths, gaps relative to my ranked target roles, and concrete recommendations.
-- [ ] Given the assessment, when it displays, then feedback is specific to STEM career paths (technical skills, projects, internship pipeline) rather than generic.
-- [ ] Given an assessment is generated, when it completes, then it is saved and viewable later without re-running the model.
-- [ ] Given the LLM call fails, when I request an assessment, then I see a friendly fallback message and can retry.
+- [x] Given a complete profile, when I request an assessment, then Clara returns identified strengths, gaps relative to my ranked target roles, and concrete recommendations.
+- [x] Given the assessment, when it displays, then feedback is specific to STEM career paths (technical skills, projects, internship pipeline) rather than generic.
+- [x] Given an assessment is generated, when it completes, then it is saved and viewable later without re-running the model.
+- [x] Given the LLM call fails, when I request an assessment, then I see a friendly fallback message and can retry.
 
 ---
 
@@ -78,10 +78,10 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** I have strong starting points aimed at my top target roles.
 
 **Acceptance Criteria:**
-- [ ] Given my profile and three ranked target roles, when I request resumes, then Clara generates three distinct resume drafts, each oriented toward one ranked role.
-- [ ] Given each draft, when I review it, then it reflects my real experience (no fabricated employers, degrees, or dates).
-- [ ] Given a draft, when I want it, then I can download it (PDF/DOCX) and/or copy the text.
-- [ ] Given I edit a draft, when I save, then my edited version is stored alongside the original.
+- [x] Given my profile and three ranked target roles, when I request resumes, then Clara generates three distinct resume drafts, each oriented toward one ranked role.
+- [x] Given each draft, when I review it, then it reflects my real experience (no fabricated employers, degrees, or dates).
+- [x] Given a draft, when I want it, then I can download it (PDF/DOCX) and/or copy the text.
+- [x] Given I edit a draft, when I save, then my edited version is stored alongside the original.
 
 ---
 

@@ -1,19 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useResumes } from "../hooks/useResumes";
+import { downloadResume } from "../services/documents";
 import NavBar from "../components/NavBar";
 
 const RANK_LABELS = { 1: "First Choice", 2: "Second Choice", 3: "Third Choice" };
-
-function downloadText(text, filename) {
-  const blob = new Blob([text], { type: "text/plain" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 function ResumeCard({ resume, onSave }) {
   const [editing, setEditing] = useState(false);
@@ -49,11 +40,11 @@ function ResumeCard({ resume, onSave }) {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     const slug = (resume.target_title || `role-${resume.target_rank}`)
       .toLowerCase()
       .replace(/\s+/g, "-");
-    downloadText(displayText, `clara-resume-${slug}.txt`);
+    await downloadResume(resume.id, `clara-resume-${slug}.docx`);
   }
 
   const rankClass = resume.target_rank === 1 ? "" : resume.target_rank === 2 ? " rank-2" : " rank-3";
@@ -81,7 +72,7 @@ function ResumeCard({ resume, onSave }) {
           {copied ? "✓ Copied!" : "Copy text"}
         </button>
         <button className="btn btn-ghost btn-sm" onClick={handleDownload}>
-          Download .txt
+          Download .docx
         </button>
         {!editing && (
           <button className="btn btn-secondary btn-sm" onClick={startEdit}>

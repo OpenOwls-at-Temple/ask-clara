@@ -1,4 +1,4 @@
-import { request } from "./auth";
+import { request, requestBlob } from "./auth";
 
 export const generateResumes = () => request("/resumes/generate", { method: "POST" });
 
@@ -9,3 +9,13 @@ export const updateResume = (id, editedText) =>
     method: "PATCH",
     body: JSON.stringify({ edited_text: editedText }),
   });
+
+export const downloadResume = async (id, filename) => {
+  const blob = await requestBlob(`/resumes/${id}/download`);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+};

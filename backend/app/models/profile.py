@@ -25,7 +25,7 @@ class Profile(Base):
     __tablename__ = "profiles"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     degree_level: Mapped[DegreeLevel | None] = mapped_column(
         SAEnum(DegreeLevel), nullable=True
     )
@@ -47,7 +47,7 @@ class TargetRole(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     profile_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("profiles.id"), nullable=False
+        ForeignKey("profiles.id"), nullable=False, index=True
     )
     rank: Mapped[int] = mapped_column(Integer, nullable=False)  # 1, 2, or 3
     title: Mapped[str] = mapped_column(String, nullable=False)

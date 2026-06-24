@@ -153,8 +153,47 @@ async def test_run_assessment_raises_runtime_on_llm_error():
 # ---------------------------------------------------------------------------
 
 
-def test_student_cannot_trigger_assessment_for_another_student():
-    # Each route is gated by get_current_user which extracts user_id from the JWT.
-    # The service always scopes profile lookup to that user_id, so another student's
-    # profile can never be accessed. Full integration test requires TestClient + test DB.
-    pytest.skip("requires TestClient + async test DB setup")
+@pytest.mark.asyncio
+async def test_student_cannot_trigger_assessment_for_another_student(client, db_session):
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from app.models.profile import Profile
+    from datetime import datetime
+    import uuid
+
+    user_a_id = uuid.uuid4()
+    user_b_id = uuid.uuid4()
+    user_a = User(
+        id=user_a_id,
+        temple_email="usera@temple.edu",
+        display_name="User A",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    user_b = User(
+        id=user_b_id,
+        temple_email="userb@temple.edu",
+        display_name="User B",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    db_session.add_all([user_a, user_b])
+    await db_session.flush()
+    
+    profile_b = Profile(
+        id=uuid.uuid4(),
+        user_id=user_b_id,
+        degree_level="undergrad",
+        major_program="Computer Science",
+        updated_at=datetime.utcnow(),
+        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d"
+    )
+    db_session.add(profile_b)
+    await db_session.commit()
+
+    token_a = create_access_token(str(user_a_id))
+    headers = {"Authorization": f"Bearer {token_a}"}
+
+    response = await client.post("/api/assessment", headers=headers)
+    assert response.status_code == 400
+    assert "Profile not found" in response.json()["detail"]
