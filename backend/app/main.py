@@ -13,6 +13,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    from app.database import get_mongo_db
+    mongo = get_mongo_db()
+    await mongo["resumes"].create_index([("user_id", 1)])
+    await mongo["assessments"].create_index([("user_id", 1)])
+    await mongo["linkedin"].create_index([("user_id", 1)])
+
+
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(assessment.router, prefix="/api", tags=["assessment"])

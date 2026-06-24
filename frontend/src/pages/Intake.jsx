@@ -38,7 +38,7 @@ function RankedRoleInput({ rank, value, onChange }) {
 }
 
 export default function Intake() {
-  const { profile, loading, save, saveResume, saveLinkedIn } = useProfile();
+  const { profile, loading, save, saveResume, saveLinkedIn, saveLinkedInExport } = useProfile();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -50,15 +50,17 @@ export default function Intake() {
     roles: ["", "", ""],
   });
 
-  const [resumeFile,     setResumeFile]     = useState(null);
-  const [linkedInUrl,    setLinkedInUrl]    = useState("");
-  const [saving,         setSaving]         = useState(false);
-  const [uploadingResume,setUploadingResume]= useState(false);
-  const [savingLinkedIn, setSavingLinkedIn] = useState(false);
-  const [error,          setError]          = useState(null);
-  const [saveSuccess,    setSaveSuccess]    = useState(false);
-  const [resumeStatus,   setResumeStatus]   = useState(null);
-  const [linkedInStatus, setLinkedInStatus] = useState(null);
+  const [resumeFile,          setResumeFile]          = useState(null);
+  const [linkedInUrl,         setLinkedInUrl]         = useState("");
+  const [linkedInExportFile,  setLinkedInExportFile]  = useState(null);
+  const [saving,              setSaving]              = useState(false);
+  const [uploadingResume,     setUploadingResume]     = useState(false);
+  const [savingLinkedIn,      setSavingLinkedIn]      = useState(false);
+  const [uploadingLinkedIn,   setUploadingLinkedIn]   = useState(false);
+  const [error,               setError]               = useState(null);
+  const [saveSuccess,         setSaveSuccess]         = useState(false);
+  const [resumeStatus,        setResumeStatus]        = useState(null);
+  const [linkedInStatus,      setLinkedInStatus]      = useState(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -131,11 +133,26 @@ export default function Intake() {
     setLinkedInStatus(null);
     try {
       await saveLinkedIn(linkedInUrl.trim());
-      setLinkedInStatus("Saved");
+      setLinkedInStatus("URL saved");
     } catch {
       setLinkedInStatus("Failed to save. Check the URL and try again.");
     } finally {
       setSavingLinkedIn(false);
+    }
+  }
+
+  async function handleLinkedInExportUpload() {
+    if (!linkedInExportFile) return;
+    setUploadingLinkedIn(true);
+    setLinkedInStatus(null);
+    try {
+      await saveLinkedInExport(linkedInExportFile);
+      setLinkedInStatus("Export uploaded — Clara will use this content");
+      setLinkedInExportFile(null);
+    } catch {
+      setLinkedInStatus("Upload failed — check file type (PDF or DOCX, max 5 MB)");
+    } finally {
+      setUploadingLinkedIn(false);
     }
   }
 
@@ -326,37 +343,87 @@ export default function Intake() {
             <div className="form-card-header">
               <div className="form-card-title">LinkedIn Profile</div>
               <div className="form-card-desc">
-                Optionally share your LinkedIn URL so Clara can enrich your profile.
+                Upload your LinkedIn data export so Clara can read your full profile content,
+                or save your profile URL as a reference link.
               </div>
             </div>
 
             {linkedInStatus && (
-              <div className={linkedInStatus.includes("fail") ? "status-error" : "status-success"}
+              <div
+                className={
+                  linkedInStatus.includes("fail") || linkedInStatus.includes("failed")
+                    ? "status-error"
+                    : "status-success"
+                }
                 style={{ marginBottom: "var(--s4)" }}
               >
-                {linkedInStatus.includes("fail") ? "⚠ " : "✓ "}{linkedInStatus}
+                {linkedInStatus.includes("fail") || linkedInStatus.includes("failed")
+                  ? "⚠ "
+                  : "✓ "}
+                {linkedInStatus}
               </div>
             )}
 
-            <div className="form-group" style={{ marginBottom: "var(--s4)" }}>
-              <label className="form-label" htmlFor="linkedin_url">LinkedIn URL</label>
-              <input
-                id="linkedin_url"
-                className="form-input"
-                type="url"
-                value={linkedInUrl}
-                onChange={(e) => setLinkedInUrl(e.target.value)}
-                placeholder="https://linkedin.com/in/your-profile"
-              />
+            {/* Export PDF upload — provides actual content to the LLM */}
+            <div style={{ marginBottom: "var(--s6)" }}>
+              <p className="form-label" style={{ marginBottom: "var(--s3)" }}>
+                LinkedIn Export <span style={{ color: "var(--mist)", fontWeight: 400 }}>(recommended — PDF or DOCX)</span>
+              </p>
+              <p className="t-small" style={{ marginBottom: "var(--s3)", color: "var(--mist)" }}>
+                Go to LinkedIn → Settings → Data Privacy → Get a copy of your data → export your profile as a PDF.
+              </p>
+              <div className="upload-zone" style={{ marginBottom: "var(--s4)" }}>
+                <div className="upload-zone-icon">📎</div>
+                <div className="upload-zone-label">
+                  {linkedInExportFile ? linkedInExportFile.name : "Click to select your LinkedIn export"}
+                </div>
+                <div className="upload-zone-hint">PDF or DOCX — max 5 MB</div>
+                <input
+                  type="file"
+                  accept=".pdf,.docx"
+                  onChange={(e) => setLinkedInExportFile(e.target.files[0] || null)}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    opacity: 0,
+                    cursor: "pointer",
+                    width: "100%",
+                    height: "100%",
+                  }}
+                />
+              </div>
+              <button
+                className="btn btn-primary"
+                onClick={handleLinkedInExportUpload}
+                disabled={!linkedInExportFile || uploadingLinkedIn}
+              >
+                {uploadingLinkedIn ? "Uploading…" : "Upload LinkedIn Export"}
+              </button>
             </div>
 
-            <button
-              className="btn btn-primary"
-              onClick={handleLinkedInSave}
-              disabled={!linkedInUrl.trim() || savingLinkedIn}
-            >
-              {savingLinkedIn ? "Saving…" : "Save LinkedIn"}
-            </button>
+            {/* URL — stored as a reference link only, not sent to the LLM */}
+            <div style={{ borderTop: "1px solid var(--border)", paddingTop: "var(--s5)" }}>
+              <p className="form-label" style={{ marginBottom: "var(--s3)" }}>
+                Profile URL <span style={{ color: "var(--mist)", fontWeight: 400 }}>(optional reference link)</span>
+              </p>
+              <div className="form-group" style={{ marginBottom: "var(--s4)" }}>
+                <input
+                  id="linkedin_url"
+                  className="form-input"
+                  type="url"
+                  value={linkedInUrl}
+                  onChange={(e) => setLinkedInUrl(e.target.value)}
+                  placeholder="https://linkedin.com/in/your-profile"
+                />
+              </div>
+              <button
+                className="btn btn-secondary"
+                onClick={handleLinkedInSave}
+                disabled={!linkedInUrl.trim() || savingLinkedIn}
+              >
+                {savingLinkedIn ? "Saving…" : "Save URL"}
+              </button>
+            </div>
           </div>
 
         </div>

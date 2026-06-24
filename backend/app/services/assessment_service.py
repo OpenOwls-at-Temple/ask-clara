@@ -1,3 +1,4 @@
+import asyncio
 import uuid
 
 from bson import ObjectId
@@ -113,15 +114,20 @@ async def generate_resumes(
         "track": profile.track.value if profile.track else None,
     }
 
-    results = []
-    sorted_roles = sorted(profile.target_roles, key=lambda r: r.rank)
-    for role in sorted_roles:
+    async def process_role(role):
         target_role = {"rank": role.rank, "title": role.title}
         context = build_resume_context(profile_dict, resume_content, linkedin_content, target_role)
         result = await run_resume_agent(context)
         if "error" in result:
             raise RuntimeError(result["error"])
+        return role, result
 
+    sorted_roles = sorted(profile.target_roles, key=lambda r: r.rank)
+    tasks = [process_role(role) for role in sorted_roles]
+    agent_results = await asyncio.gather(*tasks)
+
+    results = []
+    for role, result in agent_results:
         sections = result.get("sections", [])
         doc = {
             "user_id": str(user_id),
@@ -138,6 +144,7 @@ async def generate_resumes(
         doc["id"] = doc_id
         results.append(doc)
 
+    results.sort(key=lambda r: r["target_rank"])
     return results
 
 

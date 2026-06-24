@@ -180,12 +180,149 @@ async def test_generate_resumes_raises_runtime_on_llm_error():
 
 
 # ---------------------------------------------------------------------------
-# Ownership / authorization
-# ---------------------------------------------------------------------------
+@pytest.mark.asyncio
+async def test_student_cannot_generate_resumes_for_another_student(client, db_session):
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from app.models.profile import Profile
+    from datetime import datetime
+    import uuid
+
+    user_a_id = uuid.uuid4()
+    user_b_id = uuid.uuid4()
+    user_a = User(
+        id=user_a_id,
+        temple_email="usera@temple.edu",
+        display_name="User A",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    user_b = User(
+        id=user_b_id,
+        temple_email="userb@temple.edu",
+        display_name="User B",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    db_session.add_all([user_a, user_b])
+    await db_session.flush()
+    
+    profile_b = Profile(
+        id=uuid.uuid4(),
+        user_id=user_b_id,
+        degree_level="undergrad",
+        major_program="Computer Science",
+        updated_at=datetime.utcnow(),
+        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d"
+    )
+    db_session.add(profile_b)
+    await db_session.commit()
+
+    token_a = create_access_token(str(user_a_id))
+    headers = {"Authorization": f"Bearer {token_a}"}
+
+    response = await client.post("/api/resumes/generate", headers=headers)
+    assert response.status_code == 400
+    assert "Profile not found" in response.json()["detail"]
 
 
-def test_student_cannot_generate_resumes_for_another_student():
-    # The route extracts user_id from the JWT via get_current_user; the service
-    # always scopes the profile lookup to that user_id. No other student's data
-    # can be accessed. Full integration test requires TestClient + async test DB.
-    pytest.skip("requires TestClient + async test DB setup")
+@pytest.mark.asyncio
+async def test_download_resume_returns_docx(client, db_session):
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from datetime import datetime
+    import uuid
+    from unittest.mock import AsyncMock, patch, MagicMock
+
+    user_id = uuid.uuid4()
+    user = User(
+        id=user_id,
+        temple_email="downloader@temple.edu",
+        display_name="Downloader",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    db_session.add(user)
+    await db_session.commit()
+
+    token = create_access_token(str(user_id))
+    headers = {"Authorization": f"Bearer {token}"}
+
+    fake_doc = {
+        "user_id": str(user_id),
+        "target_title": "Software Engineer",
+        "sections": [
+            {"heading": "Summary", "content": "A skilled engineer."},
+            {"heading": "Skills", "content": "Python, FastAPI"},
+        ],
+        "edited_text": None,
+    }
+
+    mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=fake_doc)
+    mock_mongo = MagicMock()
+    mock_mongo.__getitem__ = MagicMock(return_value=mock_collection)
+
+    with patch("app.routes.documents.get_mongo_db", return_value=mock_mongo):
+        response = await client.get(
+            "/api/resumes/64a2b3c4d5e6f7890a1b2c3d/download",
+            headers=headers,
+        )
+
+    assert response.status_code == 200
+    assert "openxmlformats-officedocument.wordprocessingml" in response.headers["content-type"]
+    assert "clara-resume-software-engineer.docx" in response.headers["content-disposition"]
+    assert len(response.content) > 0
+
+
+@pytest.mark.asyncio
+async def test_download_resume_blocked_for_wrong_user(client, db_session):
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from datetime import datetime
+    import uuid
+    from unittest.mock import AsyncMock, patch, MagicMock
+
+    user_a_id = uuid.uuid4()
+    user_b_id = uuid.uuid4()
+    user_a = User(
+        id=user_a_id,
+        temple_email="owner@temple.edu",
+        display_name="Owner",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    user_b = User(
+        id=user_b_id,
+        temple_email="thief@temple.edu",
+        display_name="Thief",
+        role=UserRole.student,
+        created_at=datetime.utcnow(),
+    )
+    db_session.add_all([user_a, user_b])
+    await db_session.commit()
+
+    # Document belongs to user_a
+    fake_doc = {
+        "user_id": str(user_a_id),
+        "target_title": "Data Scientist",
+        "sections": [],
+        "edited_text": None,
+    }
+
+    mock_collection = MagicMock()
+    mock_collection.find_one = AsyncMock(return_value=fake_doc)
+    mock_mongo = MagicMock()
+    mock_mongo.__getitem__ = MagicMock(return_value=mock_collection)
+
+    # user_b tries to download user_a's resume
+    token_b = create_access_token(str(user_b_id))
+    headers_b = {"Authorization": f"Bearer {token_b}"}
+
+    with patch("app.routes.documents.get_mongo_db", return_value=mock_mongo):
+        response = await client.get(
+            "/api/resumes/64a2b3c4d5e6f7890a1b2c3d/download",
+            headers=headers_b,
+        )
+
+    assert response.status_code == 404

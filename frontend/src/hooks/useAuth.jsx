@@ -30,6 +30,24 @@ export function AuthProvider({ children }) {
     restore();
   }, [restore]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Refresh token in background every 10 minutes
+    const interval = setInterval(async () => {
+      try {
+        const data = await refreshToken();
+        setAccessToken(data.access_token);
+        setUser(data.user);
+      } catch (err) {
+        setAccessToken(null);
+        setUser(null);
+      }
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [user]);
+
   async function login(credential) {
     const data = await apiLogin(credential);
     setAccessToken(data.access_token);

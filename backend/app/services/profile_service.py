@@ -59,6 +59,7 @@ async def upsert_profile(
             )
 
     await db.commit()
+    db.expire(profile)
     # Reload with relationships populated.
     return await get_profile(db, user_id)
 

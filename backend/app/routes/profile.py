@@ -1,7 +1,9 @@
 import io
+import logging
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -94,9 +96,16 @@ async def upload_resume(
             status_code=400, detail="Only PDF and DOCX files are accepted"
         )
 
-    raw_text = _parse_resume(content, file.content_type or "", file.filename or "")
+    raw_text = await run_in_threadpool(
+        _parse_resume, content, file.content_type or "", file.filename or ""
+    )
 
     mongo = get_mongo_db()
+    
+    # Get current profile to check if there is an old resume to clean up
+    profile = await profile_service.get_profile(db, user.id)
+    old_doc_id = profile.resume_doc_id if profile else None
+
     doc_id = await insert_resume(
         mongo,
         {
@@ -114,6 +123,12 @@ async def upload_resume(
         await mongo["resumes"].delete_one({"_id": ObjectId(doc_id)})
         raise
 
+    if old_doc_id:
+        try:
+            await mongo["resumes"].delete_one({"_id": ObjectId(old_doc_id)})
+        except Exception:
+            logging.getLogger(__name__).warning(f"Failed to delete old resume document {old_doc_id} from MongoDB")
+
     return {"resume_doc_id": doc_id, "preview": raw_text[:300]}
 
 
@@ -128,11 +143,17 @@ async def submit_linkedin(
     db: AsyncSession = Depends(get_db),
 ):
     mongo = get_mongo_db()
+
+    profile = await profile_service.get_profile(db, user.id)
+    old_doc_id = profile.linkedin_doc_id if profile else None
+
+    # Store the URL as a reference only; raw_text stays empty so the LLM
+    # does not receive a bare URL string as "linkedin_summary".
     doc_id = await insert_linkedin(
         mongo,
         {
             "user_id": str(user.id),
-            "raw_text": body.url,
+            "raw_text": "",
             "structured_json": {"url": body.url},
         },
     )
@@ -143,4 +164,63 @@ async def submit_linkedin(
         await mongo["linkedin"].delete_one({"_id": ObjectId(doc_id)})
         raise
 
+    if old_doc_id:
+        try:
+            await mongo["linkedin"].delete_one({"_id": ObjectId(old_doc_id)})
+        except Exception:
+            logging.getLogger(__name__).warning(
+                f"Failed to delete old LinkedIn document {old_doc_id} from MongoDB"
+            )
+
     return {"linkedin_doc_id": doc_id}
+
+
+@router.post("/profile/linkedin/upload")
+async def upload_linkedin_export(
+    file: UploadFile = File(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    content = await file.read()
+    if len(content) > _MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 5 MB limit")
+    if file.content_type not in _ALLOWED_MIME and not (file.filename or "").endswith(
+        (".pdf", ".docx")
+    ):
+        raise HTTPException(
+            status_code=400, detail="Only PDF and DOCX files are accepted"
+        )
+
+    raw_text = await run_in_threadpool(
+        _parse_resume, content, file.content_type or "", file.filename or ""
+    )
+
+    mongo = get_mongo_db()
+
+    profile = await profile_service.get_profile(db, user.id)
+    old_doc_id = profile.linkedin_doc_id if profile else None
+
+    doc_id = await insert_linkedin(
+        mongo,
+        {
+            "user_id": str(user.id),
+            "raw_text": raw_text,
+            "structured_json": {},
+        },
+    )
+
+    try:
+        await profile_service.set_linkedin_doc_id(db, user.id, doc_id)
+    except Exception:
+        await mongo["linkedin"].delete_one({"_id": ObjectId(doc_id)})
+        raise
+
+    if old_doc_id:
+        try:
+            await mongo["linkedin"].delete_one({"_id": ObjectId(old_doc_id)})
+        except Exception:
+            logging.getLogger(__name__).warning(
+                f"Failed to delete old LinkedIn document {old_doc_id} from MongoDB"
+            )
+
+    return {"linkedin_doc_id": doc_id, "preview": raw_text[:300]}

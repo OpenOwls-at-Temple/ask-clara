@@ -21,3 +21,9 @@ export const submitLinkedIn = (url) =>
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url }),
   });
+
+export const uploadLinkedInExport = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return request("/profile/linkedin/upload", { method: "POST", body: form });
+};
