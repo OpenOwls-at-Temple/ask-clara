@@ -39,6 +39,7 @@ export default function SignIn() {
           theme: "outline",
           size: "large",
           text: "signin_with",
+          width: "320",
         });
       }
     };
@@ -51,10 +52,74 @@ export default function SignIn() {
   }, [user, login, navigate]);
 
   return (
-    <div>
-      <h1>Ask Clara</h1>
-      <p>Your AI career coach. Sign in with your Temple University account to get started.</p>
-      <div ref={btnRef} />
+    <div className="signin-page">
+      {/* Left brand panel */}
+      <div className="signin-brand fade-up">
+        <div className="signin-brand-stripe" />
+        <div className="signin-brand-grid" />
+
+        <div className="signin-brand-content">
+          <div className="signin-wordmark">
+            <div className="signin-wordmark-icon">C</div>
+            <span className="signin-wordmark-text">Ask Clara</span>
+          </div>
+
+          <h1 className="signin-headline">
+            Your career.<br />
+            <em>Coached by AI.</em>
+          </h1>
+
+          <p className="signin-tagline">
+            Clara uses your resume and goals to give you personalized
+            career coaching — assessments, tailored resumes, and
+            concrete next steps.
+          </p>
+
+          <div className="signin-features">
+            {[
+              "AI-powered career assessment",
+              "Tailored resumes for each role",
+              "Gap analysis and action plans",
+              "Built for Temple University students",
+            ].map((f) => (
+              <div key={f} className="signin-feature">
+                <div className="signin-feature-dot" />
+                <span>{f}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="signin-footer">
+          Developed in partnership with Temple University Career Center.
+          Clara complements, not replaces, your career counselor.
+        </div>
+      </div>
+
+      {/* Right auth panel */}
+      <div className="signin-panel">
+        <div className="signin-panel-inner fade-up">
+          <p className="signin-panel-eyebrow">Temple University</p>
+          <h2 className="signin-panel-title">Welcome back</h2>
+          <p className="signin-panel-sub">
+            Sign in with your Temple University Google account to
+            access your coaching dashboard.
+          </p>
+
+          <div className="signin-google-wrap">
+            <div ref={btnRef} />
+          </div>
+
+          <div className="signin-divider">
+            <span className="signin-divider-text">temple.edu accounts only</span>
+          </div>
+
+          <p className="signin-note">
+            By signing in you agree to Clara's terms of service.
+            Your data is used only to personalize your coaching experience.
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
