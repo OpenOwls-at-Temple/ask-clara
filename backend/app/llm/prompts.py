@@ -33,15 +33,22 @@ education, skills, and outcomes present in the student's source material.
 Re-emphasize and reorder real content to fit the role — do NOT invent
 employers, titles, dates, degrees, skills, or metrics. Emphasize technical
 skills, relevant projects, and quantifiable outcomes where they genuinely
-exist. Use clear, standard resume structure. Respond in JSON only."""
+exist. Use clear, standard resume structure.
 
-# Expected response shape:
-# {
-#   "target_rank": 1,
-#   "target_title": "string",
-#   "sections": [{ "heading": "string", "content": "string" }],
-#   "notes_for_student": ["string"]
-# }
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "target_rank": 1,
+  "target_title": "string",
+  "sections": [
+    {"heading": "string", "content": "string"}
+  ],
+  "notes_for_student": ["string"]
+}
+Include 4–6 sections using standard headings (Summary, Education, Experience, Skills, Projects).
+Cap each section's content to ~120 words — be concise.
+notes_for_student is for suggestions that cannot be grounded in the source material —
+never put ungrounded content into sections."""
 
 DEVELOPMENT_PLAN_SYSTEM = """You are Clara, building a 6-month development plan for a STEM student.
 Given their assessment and ranked target roles, list specific skills,

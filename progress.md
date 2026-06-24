@@ -9,7 +9,7 @@
 
 ## Status Summary
 
-Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered by F2's DB layer) is done. Feature 4 (AI assessment) is next.
+Features 1–5 are implemented. Phase 1 MVP is complete.
 
 ---
 
@@ -20,12 +20,13 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 - [x] 2026-06-23 — Feature 1 implemented: `backend/app/auth.py` (JWT helpers, `get_current_user` dep), `routes/auth.py` (login via Google tokeninfo, /refresh, /logout), `services/auth_service.py` (upsert_user); all protected routes wired to `get_current_user`; frontend `AuthProvider` + `useAuth` hook + `ProtectedRoute`; `SignIn.jsx` renders Google Identity Services button; access token kept in memory only, refresh in httpOnly cookie
 - [x] 2026-06-23 — Feature 2 implemented: `profile_service.py` (get/upsert profile, set_resume/linkedin_doc_id), `GET /api/profile` + `PUT /api/profile`, `POST /api/profile/resume` (pypdf/python-docx parsing, MongoDB-first write with Postgres compensating cleanup), `POST /api/profile/linkedin` (URL storage); `documents/linkedin.py`; Pydantic validators enforce unique ranks 1–3; frontend `Intake.jsx` (questionnaire, resume upload, LinkedIn URL, pre-filled on return), `useProfile` hook, `Dashboard.jsx` with completion status
 - [x] 2026-06-24 — Feature 4 implemented and verified end-to-end in browser: `assessment_service.run_assessment` (load profile + resume/LinkedIn text from Postgres/MongoDB, strip PII via orchestrator, call assessment agent, persist to MongoDB `assessments`); `POST /api/assessment` (atomic quota increment via `UPDATE ... WHERE count < cap RETURNING`, ValueError refunds the slot, RuntimeError on LLM failure returns 503); `GET /api/assessment` (returns cached results, never re-calls model); frontend `Assessment.jsx` (load-on-mount, run button, displays strengths/gaps/recommendations with counselor note); 7 new tests covering agent retry, service validation, and LLM failure paths. LLM bugs fixed: embedded exact JSON schema in `ASSESSMENT_SYSTEM` prompt to prevent model from inventing its own schema; replaced `_strip_code_fences` with `_extract_json` (regex + brace-walk handles prose-prefixed and mid-fence responses); raised `ASSESSMENT_MAX_OUTPUT` to 2000 to prevent truncation.
+- [x] 2026-06-24 — Feature 5 implemented: `assessment_service.generate_resumes` (load profile + resume/LinkedIn from Postgres/MongoDB, call `run_resume_agent` once per ranked target role, persist each to MongoDB `resumes` with `kind='generated'`); updated `RESUME_GENERATION_SYSTEM` prompt with explicit JSON schema to prevent model from inventing its own; `POST /api/resumes/generate` (atomic quota gate, ValueError refund, 503 on LLM failure); `GET /api/resumes` (returns cached generated resumes, never re-calls model); `PATCH /api/resumes/{id}` (saves user edits, ownership-gated); `documents/resumes.py` extended with `get_generated_resumes_for_user` and `update_resume_edited_text`; `schemas/resume.py` added (`ResumeOut`, `ResumeEditRequest`); frontend `useResumes.js` hook; `Resumes.jsx` page (generate button, three resume cards with sections, notes for student, copy-to-clipboard, .txt download, inline edit + save); resume page CSS added to `index.css`; 8 new tests (agent, service, ownership).
 
 ---
 
 ## In Progress
 
-- [ ] Feature 5: generate three tailored resumes (next up)
+_(none — Phase 1 complete)_
 
 ---
 
@@ -45,7 +46,7 @@ Features 1 and 2 are implemented. Feature 3 (persistent profile, already covered
 - [x] Run initial Alembic migration: `alembic revision --autogenerate -m "initial"` (completed 2026-06-23)
 - [x] Feature 4: AI assessment — complete (see 2026-06-24 entry above)
 - [x] Frontend UI redesign — complete (see 2026-06-24 entry below)
-- [ ] Feature 5: generate three tailored resumes — implement `assessment_service.generate_resumes` (call resume agent once per ranked role, persist to MongoDB `resumes` with `kind='generated'`), wire `POST /api/resumes/generate` and `GET /api/resumes`; frontend `Resumes.jsx`
+- [x] Feature 5: generate three tailored resumes — complete (see 2026-06-24 entry above)
 
 ---
 

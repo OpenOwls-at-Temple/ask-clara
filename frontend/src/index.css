@@ -977,6 +977,145 @@ body {
 .empty-state-desc { font-size: 0.875rem; margin-bottom: var(--s5); }
 
 /* ────────────────────────────────────────────────────────────── */
+/*  RESUMES PAGE                                                  */
+/* ────────────────────────────────────────────────────────────── */
+.resume-card {
+  background: var(--white);
+  border: 1.5px solid var(--bone);
+  border-radius: 8px;
+  box-shadow: var(--shadow-xs);
+  margin-bottom: var(--s6);
+  overflow: hidden;
+}
+
+.resume-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  padding: var(--s5) var(--s6);
+  border-bottom: 1px solid var(--bone);
+  background: var(--fog);
+}
+
+.resume-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--cherry);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.resume-rank-badge.rank-2 { background: var(--slate); }
+.resume-rank-badge.rank-3 { background: var(--mist); }
+
+.resume-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.resume-card-meta {
+  font-size: 0.75rem;
+  color: var(--mist);
+  white-space: nowrap;
+}
+
+.resume-card-actions {
+  display: flex;
+  gap: var(--s3);
+  padding: var(--s3) var(--s6);
+  border-bottom: 1px solid var(--bone);
+  background: var(--white);
+}
+
+.resume-card-body {
+  padding: var(--s6);
+}
+
+.resume-section {
+  margin-bottom: var(--s5);
+}
+.resume-section:last-child { margin-bottom: 0; }
+
+.resume-section-heading {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mist);
+  margin-bottom: var(--s2);
+  padding-bottom: var(--s2);
+  border-bottom: 1px solid var(--bone);
+}
+
+.resume-section-content {
+  font-size: 0.875rem;
+  color: var(--slate);
+  white-space: pre-wrap;
+  line-height: 1.65;
+}
+
+.resume-notes {
+  margin-top: var(--s5);
+  padding: var(--s4);
+  background: var(--warn-bg);
+  border: 1px solid rgba(146, 64, 14, 0.2);
+  border-radius: 6px;
+}
+
+.resume-notes-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--warn);
+  margin-bottom: var(--s2);
+}
+
+.resume-notes-item {
+  font-size: 0.8125rem;
+  color: var(--warn);
+  padding-left: var(--s5);
+  position: relative;
+  margin-bottom: var(--s1);
+  line-height: 1.5;
+}
+.resume-notes-item::before {
+  content: '→';
+  position: absolute;
+  left: 0;
+}
+
+.resume-edit-area {
+  width: 100%;
+  min-height: 320px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  padding: var(--s4);
+  border: 1.5px solid var(--cherry);
+  border-radius: 4px;
+  color: var(--ink);
+  background: var(--white);
+  resize: vertical;
+}
+.resume-edit-area:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--cherry-rule);
+}
+
+.resume-edit-actions {
+  display: flex;
+  gap: var(--s3);
+  margin-top: var(--s4);
+}
+
+/* ────────────────────────────────────────────────────────────── */
 /*  RESPONSIVE                                                    */
 /* ────────────────────────────────────────────────────────────── */
 @media (max-width: 860px) {
