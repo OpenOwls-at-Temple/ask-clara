@@ -18,6 +18,15 @@ class ProfileIn(BaseModel):
     is_first_gen: Optional[bool] = None
     target_roles: Optional[list[TargetRoleIn]] = None
 
+    @field_validator("expected_graduation", mode="before")
+    @classmethod
+    def parse_expected_graduation(cls, v):
+        if v == "" or v is None:
+            return None
+        if isinstance(v, str) and len(v) == 7:
+            return f"{v}-01"
+        return v
+
     @field_validator("degree_level")
     @classmethod
     def valid_degree_level(cls, v):
@@ -28,8 +37,15 @@ class ProfileIn(BaseModel):
     @field_validator("track")
     @classmethod
     def valid_track(cls, v):
-        if v is not None and v not in ("industry", "academia", "government", "undecided"):
-            raise ValueError("track must be industry, academia, government, or undecided")
+        if v is not None and v not in (
+            "industry",
+            "academia",
+            "government",
+            "undecided",
+        ):
+            raise ValueError(
+                "track must be industry, academia, government, or undecided"
+            )
         return v
 
     @model_validator(mode="after")

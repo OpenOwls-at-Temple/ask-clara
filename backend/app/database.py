@@ -2,7 +2,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from app.config import settings
 
-engine = create_async_engine(settings.database_url, echo=settings.environment == "local")
+engine = create_async_engine(
+    settings.database_url, echo=settings.environment == "local"
+)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 _mongo_client: AsyncIOMotorClient | None = None

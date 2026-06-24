@@ -7,7 +7,7 @@ export function setAccessToken(token) {
   _token = token;
 }
 
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const headers = { ...options.headers };
   if (_token) headers["Authorization"] = `Bearer ${_token}`;
   const res = await fetch(`${BASE}${path}`, {

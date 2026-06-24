@@ -12,7 +12,9 @@ async def insert_assessment(mongo: AsyncIOMotorDatabase, doc: dict) -> str:
     return str(result.inserted_id)
 
 
-async def get_assessments_for_user(mongo: AsyncIOMotorDatabase, user_id: str) -> list[dict]:
+async def get_assessments_for_user(
+    mongo: AsyncIOMotorDatabase, user_id: str
+) -> list[dict]:
     cursor = mongo["assessments"].find({"user_id": user_id}).sort("created_at", -1)
     return [_serialize(doc) async for doc in cursor]
 

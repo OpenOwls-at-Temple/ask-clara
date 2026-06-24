@@ -12,8 +12,12 @@ async def insert_linkedin(mongo: AsyncIOMotorDatabase, doc: dict) -> str:
     return str(result.inserted_id)
 
 
-async def get_linkedin_for_user(mongo: AsyncIOMotorDatabase, user_id: str) -> dict | None:
-    doc = await mongo["linkedin"].find_one({"user_id": user_id}, sort=[("created_at", -1)])
+async def get_linkedin_for_user(
+    mongo: AsyncIOMotorDatabase, user_id: str
+) -> dict | None:
+    doc = await mongo["linkedin"].find_one(
+        {"user_id": user_id}, sort=[("created_at", -1)]
+    )
     if doc:
         doc["id"] = str(doc.pop("_id"))
     return doc

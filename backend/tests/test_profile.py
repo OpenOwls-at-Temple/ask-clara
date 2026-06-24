@@ -47,3 +47,14 @@ def test_student_cannot_see_other_students_profile():
 
 def test_profile_upsert_replaces_target_roles():
     pytest.skip("requires async DB session — add with pytest-asyncio + test DB")
+
+
+def test_profile_accepts_yyyy_mm_expected_graduation():
+    from datetime import date
+    p = ProfileIn(expected_graduation="2026-05")
+    assert p.expected_graduation == date(2026, 5, 1)
+
+
+def test_profile_accepts_empty_expected_graduation():
+    p = ProfileIn(expected_graduation="")
+    assert p.expected_graduation is None

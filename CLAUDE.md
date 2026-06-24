@@ -93,6 +93,7 @@ React SPA (Vite)
 - If a spec file is missing a detail you need, ask the user rather than assuming.
 - Never delete or overwrite any file in `ai_specs/` without explicit instruction.
 - Never use a library not already in `requirements.txt` or `package.json` without asking first.
+- After completing the backend and frontend implementation for any new feature, STOP and prompt the user to perform a manual browser test. Ask the user if they want you to spin up the dev servers so they can visually verify the UI and end-to-end data flow before moving on to the next feature or updating progress.md.
 
 ## Clara-Specific Guardrails
 

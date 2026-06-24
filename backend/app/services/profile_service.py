@@ -19,7 +19,9 @@ async def get_profile(db: AsyncSession, user_id: uuid.UUID) -> Profile | None:
     return result.scalar_one_or_none()
 
 
-async def upsert_profile(db: AsyncSession, user_id: uuid.UUID, data: ProfileIn) -> Profile:
+async def upsert_profile(
+    db: AsyncSession, user_id: uuid.UUID, data: ProfileIn
+) -> Profile:
     profile = await get_profile(db, user_id)
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -75,7 +77,9 @@ async def set_resume_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str) -
     await db.commit()
 
 
-async def set_linkedin_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str) -> None:
+async def set_linkedin_doc_id(
+    db: AsyncSession, user_id: uuid.UUID, doc_id: str
+) -> None:
     profile = await get_profile(db, user_id)
     if profile is None:
         profile = Profile(
