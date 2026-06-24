@@ -44,13 +44,17 @@ def _parse_resume(content: bytes, content_type: str, filename: str) -> str:
     ext = (filename or "").rsplit(".", 1)[-1].lower()
     if content_type == "application/pdf" or ext == "pdf":
         from pypdf import PdfReader
+
         reader = PdfReader(io.BytesIO(content))
         return "\n".join(page.extract_text() or "" for page in reader.pages)
     if ext == "docx" or "wordprocessingml" in content_type:
         from docx import Document
+
         doc = Document(io.BytesIO(content))
         return "\n".join(p.text for p in doc.paragraphs)
-    raise HTTPException(status_code=400, detail="Unsupported file type. Upload a PDF or DOCX.")
+    raise HTTPException(
+        status_code=400, detail="Unsupported file type. Upload a PDF or DOCX."
+    )
 
 
 @router.get("/profile", response_model=ProfileOut)
@@ -86,7 +90,9 @@ async def upload_resume(
     if file.content_type not in _ALLOWED_MIME and not (file.filename or "").endswith(
         (".pdf", ".docx")
     ):
-        raise HTTPException(status_code=400, detail="Only PDF and DOCX files are accepted")
+        raise HTTPException(
+            status_code=400, detail="Only PDF and DOCX files are accepted"
+        )
 
     raw_text = _parse_resume(content, file.content_type or "", file.filename or "")
 

@@ -42,6 +42,7 @@ export default function Intake() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const [savingLinkedIn, setSavingLinkedIn] = useState(false);
   const [error, setError] = useState(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [resumeStatus, setResumeStatus] = useState(null);
   const [linkedInStatus, setLinkedInStatus] = useState(null);
 
@@ -55,7 +56,7 @@ export default function Intake() {
     setForm({
       degree_level: profile.degree_level || "",
       major_program: profile.major_program || "",
-      expected_graduation: profile.expected_graduation || "",
+      expected_graduation: profile.expected_graduation ? profile.expected_graduation.substring(0, 7) : "",
       track: profile.track || "",
       is_first_gen: profile.is_first_gen ?? false,
       roles,
@@ -75,6 +76,7 @@ export default function Intake() {
   async function handleSaveQuestionnaire(e) {
     e.preventDefault();
     setError(null);
+    setSaveSuccess(false);
     setSaving(true);
     try {
       const target_roles = form.roles
@@ -89,6 +91,7 @@ export default function Intake() {
         is_first_gen: form.is_first_gen,
         target_roles,
       });
+      setSaveSuccess(true);
     } catch {
       setError("Failed to save. Please try again.");
     } finally {
@@ -204,6 +207,7 @@ export default function Intake() {
           ))}
 
           {error && <p style={{ color: "red" }}>{error}</p>}
+          {saveSuccess && <p style={{ color: "green" }}>Profile saved successfully!</p>}
           <button type="submit" disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </button>
