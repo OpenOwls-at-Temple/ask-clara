@@ -8,7 +8,6 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-ANTHROPIC_MODEL = "claude-sonnet-4-6"
 FALLBACK_MESSAGE = "I couldn't generate that right now — please try again in a moment."
 
 _anthropic_client: anthropic.AsyncAnthropic | None = None
@@ -30,7 +29,7 @@ async def _call_anthropic(
     for attempt in range(2):
         try:
             message = await client.messages.create(
-                model=ANTHROPIC_MODEL,
+                model=settings.anthropic_model,
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_content}],
@@ -123,6 +122,16 @@ async def _call_deepseek(system: str, user_content: str, max_tokens: int) -> str
                 if attempt == 0:
                     await asyncio.sleep(2)
     return None
+
+
+def get_model() -> str:
+    """Return the model name for the currently configured provider."""
+    provider = settings.llm_provider.lower()
+    if provider == "gemini":
+        return settings.gemini_model
+    if provider == "deepseek":
+        return settings.deepseek_model
+    return settings.anthropic_model
 
 
 async def call_llm(

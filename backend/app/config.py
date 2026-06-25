@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     # LLM provider selection — set one of the keys below and point llm_provider at it
     llm_provider: str = "anthropic"  # anthropic | gemini | deepseek
     anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-sonnet-4-6"
     gemini_api_key: Optional[str] = Field(
         default=None, validation_alias=AliasChoices("gemini_api_key", "google_api_key")
     )

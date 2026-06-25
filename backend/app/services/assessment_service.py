@@ -13,7 +13,7 @@ from app.llm.orchestrator import (
     build_resume_context,
     trim_resume_text,
 )
-from app.llm.service import MODEL
+from app.llm.service import get_model
 from app.services import profile_service
 
 
@@ -70,7 +70,7 @@ async def run_assessment(
         "strengths": result.get("strengths", []),
         "gaps": result.get("gaps", []),
         "recommendations": result.get("recommendations", []),
-        "model": MODEL,
+        "model": get_model(),
     }
     doc_id = await insert_assessment(mongo, doc)
     doc.pop("_id", None)
@@ -145,7 +145,7 @@ async def generate_resumes(
             "sections": sections,
             "notes_for_student": result.get("notes_for_student", []),
             "raw_text": _render_resume_text(sections),
-            "model": MODEL,
+            "model": get_model(),
         }
         doc_id = await insert_resume(mongo, doc)
         doc.pop("_id", None)
