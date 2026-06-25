@@ -101,7 +101,7 @@ async def upload_resume(
     )
 
     mongo = get_mongo_db()
-    
+
     # Get current profile to check if there is an old resume to clean up
     profile = await profile_service.get_profile(db, user.id)
     old_doc_id = profile.resume_doc_id if profile else None
@@ -127,7 +127,9 @@ async def upload_resume(
         try:
             await mongo["resumes"].delete_one({"_id": ObjectId(old_doc_id)})
         except Exception:
-            logging.getLogger(__name__).warning(f"Failed to delete old resume document {old_doc_id} from MongoDB")
+            logging.getLogger(__name__).warning(
+                f"Failed to delete old resume document {old_doc_id} from MongoDB"
+            )
 
     return {"resume_doc_id": doc_id, "preview": raw_text[:300]}
 

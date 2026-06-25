@@ -8,8 +8,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.documents.assessments import insert_assessment
 from app.documents.resumes import insert_resume
 from app.llm.agents import run_assessment_agent, run_resume_agent
-from app.llm.orchestrator import build_assessment_context, build_resume_context, trim_resume_text
-from app.llm.service import MODEL
+from app.llm.orchestrator import (
+    build_assessment_context,
+    build_resume_context,
+    trim_resume_text,
+)
+from app.llm.service import get_model
 from app.services import profile_service
 
 
@@ -66,7 +70,7 @@ async def run_assessment(
         "strengths": result.get("strengths", []),
         "gaps": result.get("gaps", []),
         "recommendations": result.get("recommendations", []),
-        "model": MODEL,
+        "model": get_model(),
     }
     doc_id = await insert_assessment(mongo, doc)
     doc.pop("_id", None)
@@ -88,7 +92,9 @@ async def generate_resumes(
     if not profile.resume_doc_id:
         raise ValueError("Please upload a resume before generating tailored resumes.")
     if not profile.target_roles:
-        raise ValueError("Please add at least one target role before generating resumes.")
+        raise ValueError(
+            "Please add at least one target role before generating resumes."
+        )
 
     resume_doc = await mongo["resumes"].find_one(
         {"_id": ObjectId(profile.resume_doc_id)}
@@ -116,7 +122,9 @@ async def generate_resumes(
 
     async def process_role(role):
         target_role = {"rank": role.rank, "title": role.title}
-        context = build_resume_context(profile_dict, resume_content, linkedin_content, target_role)
+        context = build_resume_context(
+            profile_dict, resume_content, linkedin_content, target_role
+        )
         result = await run_resume_agent(context)
         if "error" in result:
             raise RuntimeError(result["error"])
@@ -137,7 +145,7 @@ async def generate_resumes(
             "sections": sections,
             "notes_for_student": result.get("notes_for_student", []),
             "raw_text": _render_resume_text(sections),
-            "model": MODEL,
+            "model": get_model(),
         }
         doc_id = await insert_resume(mongo, doc)
         doc.pop("_id", None)

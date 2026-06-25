@@ -10,7 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.auth import get_current_user
 from app.database import get_db, get_mongo_db
-from app.documents.resumes import get_generated_resumes_for_user, update_resume_edited_text
+from app.documents.resumes import (
+    get_generated_resumes_for_user,
+    update_resume_edited_text,
+)
 from app.models.user import User
 from app.schemas.resume import ResumeEditRequest, ResumeOut
 from app.services import assessment_service
@@ -31,9 +34,7 @@ async def generate_resumes(
         "WHERE id = CAST(:user_id AS uuid) AND llm_generation_count < :cap "
         "RETURNING id"
     )
-    quota_result = await db.execute(
-        quota_stmt, {"user_id": str(user.id), "cap": cap}
-    )
+    quota_result = await db.execute(quota_stmt, {"user_id": str(user.id), "cap": cap})
     await db.commit()
 
     if quota_result.rowcount == 0:
@@ -58,7 +59,9 @@ async def generate_resumes(
         )
         await db.commit()
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )
@@ -84,9 +87,13 @@ async def update_resume(
     db: AsyncSession = Depends(get_db),
 ):
     mongo = get_mongo_db()
-    updated = await update_resume_edited_text(mongo, resume_id, str(user.id), body.edited_text)
+    updated = await update_resume_edited_text(
+        mongo, resume_id, str(user.id), body.edited_text
+    )
     if not updated:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
+        )
     return {"ok": True}
 
 
@@ -100,10 +107,14 @@ async def download_resume(
     try:
         doc = await mongo["resumes"].find_one({"_id": ObjectId(resume_id)})
     except Exception:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
+        )
 
     if not doc or doc.get("user_id") != str(user.id):
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
+        )
 
     stream = await run_in_threadpool(_build_docx, doc)
 

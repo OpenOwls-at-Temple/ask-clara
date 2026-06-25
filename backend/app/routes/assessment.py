@@ -28,9 +28,7 @@ async def run_assessment(
         "WHERE id = CAST(:user_id AS uuid) AND llm_generation_count < :cap "
         "RETURNING id"
     )
-    quota_result = await db.execute(
-        quota_stmt, {"user_id": str(user.id), "cap": cap}
-    )
+    quota_result = await db.execute(quota_stmt, {"user_id": str(user.id), "cap": cap})
     await db.commit()
 
     if quota_result.rowcount == 0:
@@ -56,7 +54,9 @@ async def run_assessment(
         )
         await db.commit()
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
         )

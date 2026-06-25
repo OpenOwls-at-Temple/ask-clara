@@ -27,13 +27,18 @@ Each agent solves something a fixed algorithm cannot: it reasons over unstructur
 
 | Setting | Value |
 |---------|-------|
-| Provider | Anthropic |
-| Model | `claude-sonnet-4-6` (default for all agents) |
-| Why this model | Strong reasoning and writing quality at a cost that fits a fixed grant budget across ~500 students |
-| Called from | Backend service layer only (`backend/app/llm/`) — never from the frontend |
-| API key location | Server-side environment variable `ANTHROPIC_API_KEY` |
+| Active provider | Controlled by `LLM_PROVIDER` env var: `anthropic` (default) \| `gemini` \| `deepseek` |
+| Default model | `claude-sonnet-4-6` (Anthropic), `gemini-2.5-flash` (Gemini), `deepseek-chat` (DeepSeek) |
+| Why this design | Single env var swap in Render changes the provider for all agents — no code deploy needed |
+| Called from | Backend service layer only (`backend/app/llm/service.py`) — never from the frontend |
+| API key location | Set the key for whichever provider is active: `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, or `DEEPSEEK_API_KEY` |
 
-> If an agent needs deeper reasoning later (e.g., complex PhD/academia planning), a stronger model may be selected per-agent in `orchestrator.py`, but the default stays Sonnet to protect the budget.
+**Provider notes:**
+- **Anthropic `claude-sonnet-4-6`** — highest output quality; recommended for production pilot
+- **Google `gemini-2.5-flash`** — free tier available; good for local dev and low-cost staging
+- **DeepSeek `deepseek-chat`** — cheapest per token; OpenAI-compatible API; good cost/quality tradeoff for resume drafting
+
+> To add a new provider: implement `_call_<provider>()` in `service.py`, add a branch in `call_llm()`, add the API key and model env vars to `config.py` and `.env.example`.
 
 ---
 
