@@ -18,9 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     from app.database import get_mongo_db
+
     mongo = get_mongo_db()
     await mongo["resumes"].create_index([("user_id", 1)])
     await mongo["assessments"].create_index([("user_id", 1)])

@@ -23,7 +23,9 @@ def _get_anthropic_client() -> anthropic.AsyncAnthropic:
     return _anthropic_client
 
 
-async def _call_anthropic(system: str, user_content: str, max_tokens: int) -> str | None:
+async def _call_anthropic(
+    system: str, user_content: str, max_tokens: int
+) -> str | None:
     client = _get_anthropic_client()
     for attempt in range(2):
         try:
