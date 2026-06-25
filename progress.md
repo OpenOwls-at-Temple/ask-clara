@@ -30,7 +30,7 @@ Features 1–5 are implemented. Phase 1 MVP is complete.
 
 ## In Progress
 
-_(none — Phase 1 complete)_
+- [ ] Staging deployment — infrastructure setup in progress (Supabase, Atlas, Render, Vercel, GitHub Actions)
 
 ---
 
@@ -66,4 +66,5 @@ _(none — Phase 1 complete)_
 | 2026-06-24 | Implemented Feature 4: assessment service, POST/GET /api/assessment routes with atomic quota gate, Assessment.jsx frontend page, 7 new passing tests |
 | 2026-06-24 | E2E browser tested Feature 4 with real Anthropic API. Fixed three LLM bugs: JSON schema not specified in prompt (model invented own schema), `_strip_code_fences` not robust to prose-prefixed responses, `ASSESSMENT_MAX_OUTPUT=600` truncating the response mid-JSON |
 | 2026-06-24 | Complete frontend UI redesign: built `src/index.css` design system with Temple cherry red tokens, custom typography scale, button/form/card/badge components; redesigned SignIn (dark hero split layout with radial glow + dot grid, white auth panel), Dashboard (progress card grid with left-border status accents), Intake (form cards with 2-column grid, cherry-numbered ranked roles, upload zone), Assessment (color-coded result items — green strengths, amber gaps, cherry recommendations); added shared `NavBar.jsx` component with sticky dark bar, cherry stripe, and active nav state; no CSS framework used |
+| 2026-06-25 | Staging deployment scaffolding: added `FRONTEND_ORIGIN` env var to config + dynamic CORS in `main.py`; created `frontend/vercel.json` (API rewrite to Render); created `render.yaml` (Render service IaC); created `.github/workflows/ci.yml` (GitHub Actions — backend pytest + black, frontend jest + eslint, with Postgres/Mongo service containers); created `frontend/eslint.config.js` (ESLint 9 flat config) |
 
