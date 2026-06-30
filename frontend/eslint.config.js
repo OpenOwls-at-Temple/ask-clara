@@ -24,6 +24,19 @@ export default [
     },
   },
   {
+    files: ["src/__mocks__/**"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: {
+        require: "readonly",
+        module: "writable",
+        exports: "writable",
+        __dirname: "readonly",
+        __filename: "readonly",
+      },
+    },
+  },
+  {
     ignores: ["dist/", "node_modules/", "tests/"],
   },
 ];
