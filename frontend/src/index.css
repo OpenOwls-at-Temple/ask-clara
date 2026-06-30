@@ -786,6 +786,37 @@ body {
 }
 .form-card-desc { font-size: 0.8125rem; color: var(--mist); }
 
+.form-card-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  padding: var(--s4) var(--s5);
+}
+.form-card-collapsed-left {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+}
+.form-card-check {
+  width: 28px;
+  height: 28px;
+  background: var(--success-bg);
+  color: var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.form-card-collapsed-summary {
+  font-size: 0.8125rem;
+  color: var(--mist);
+  line-height: 1.4;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

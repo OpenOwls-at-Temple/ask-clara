@@ -61,6 +61,9 @@ export default function Intake() {
   const [saveSuccess,         setSaveSuccess]         = useState(false);
   const [resumeStatus,        setResumeStatus]        = useState(null);
   const [linkedInStatus,      setLinkedInStatus]      = useState(null);
+  const [bgCollapsed,         setBgCollapsed]         = useState(false);
+  const [resumePreviewUrl,    setResumePreviewUrl]    = useState(null);
+  const [resumeFileName,      setResumeFileName]      = useState(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -77,7 +80,14 @@ export default function Intake() {
     });
     if (profile.resume_doc_id)  setResumeStatus("Uploaded");
     if (profile.linkedin_doc_id) setLinkedInStatus("Saved");
+    if (profile.degree_level && profile.target_roles?.length > 0) {
+      setBgCollapsed(true);
+    }
   }, [profile]);
+
+  useEffect(() => {
+    return () => { if (resumePreviewUrl) URL.revokeObjectURL(resumePreviewUrl); };
+  }, [resumePreviewUrl]);
 
   function handleRoleChange(rank, title) {
     setForm((prev) => {
@@ -105,6 +115,7 @@ export default function Intake() {
         target_roles,
       });
       setSaveSuccess(true);
+      setBgCollapsed(true);
     } catch {
       setError("Failed to save. Please try again.");
     } finally {
@@ -120,6 +131,7 @@ export default function Intake() {
       await saveResume(resumeFile);
       setResumeStatus("Uploaded successfully");
       setResumeFile(null);
+      setResumeFileName(null);
     } catch {
       setResumeStatus("Upload failed — check file type (PDF/DOCX, max 5 MB)");
     } finally {
@@ -189,6 +201,27 @@ export default function Intake() {
 
           {/* Background & Goals */}
           <div className="form-card">
+            {bgCollapsed ? (
+              <div className="form-card-collapsed">
+                <div className="form-card-collapsed-left">
+                  <div className="form-card-check">✓</div>
+                  <div>
+                    <div className="form-card-title" style={{ marginBottom: "var(--s1)" }}>Background &amp; Goals</div>
+                    <div className="form-card-collapsed-summary">
+                      {[
+                        DEGREE_LEVELS.find(d => d.value === form.degree_level)?.label,
+                        form.major_program,
+                        form.roles.filter(Boolean).slice(0, 2).join(" · "),
+                      ].filter(Boolean).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+                <button className="btn btn-secondary btn-sm" type="button" onClick={() => setBgCollapsed(false)}>
+                  Edit
+                </button>
+              </div>
+            ) : (
+            <>
             <div className="form-card-header">
               <div className="form-card-title">Background & Goals</div>
               <div className="form-card-desc">
@@ -287,6 +320,8 @@ export default function Intake() {
                 {saving ? "Saving…" : "Save Profile"}
               </button>
             </form>
+            </>
+            )}
           </div>
 
           {/* Resume upload */}
@@ -306,16 +341,42 @@ export default function Intake() {
               </div>
             )}
 
+            {resumePreviewUrl && (
+              <div style={{ marginBottom: "var(--s4)", borderRadius: 6, overflow: "hidden", border: "1.5px solid var(--bone)" }}>
+                <embed src={resumePreviewUrl} type="application/pdf" width="100%" height="420px" />
+              </div>
+            )}
+
+            {!resumePreviewUrl && profile?.resume_doc_id && (
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s3)", padding: "var(--s4)", marginBottom: "var(--s4)", background: "var(--fog)", borderRadius: 6, border: "1.5px solid var(--bone)" }}>
+                <span style={{ fontSize: "1.5rem" }}>📄</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.875rem", color: "var(--ink)" }}>Resume on file</div>
+                  <div style={{ fontSize: "0.75rem", color: "var(--mist)" }}>Select a new file below to replace it</div>
+                </div>
+              </div>
+            )}
+
             <div className="upload-zone" style={{ marginBottom: "var(--s4)" }}>
               <div className="upload-zone-icon">📎</div>
               <div className="upload-zone-label">
-                {resumeFile ? resumeFile.name : "Click to select a file"}
+                {resumeFileName ? resumeFileName : "Click to select a file"}
               </div>
               <div className="upload-zone-hint">PDF or DOCX — max 5 MB</div>
               <input
                 type="file"
                 accept=".pdf,.docx"
-                onChange={(e) => setResumeFile(e.target.files[0] || null)}
+                onChange={(e) => {
+                  const f = e.target.files[0] || null;
+                  setResumeFile(f);
+                  if (f) {
+                    setResumeFileName(f.name);
+                    setResumePreviewUrl(f.type === "application/pdf" ? URL.createObjectURL(f) : null);
+                  } else {
+                    setResumeFileName(null);
+                    setResumePreviewUrl(null);
+                  }
+                }}
                 style={{
                   position: "absolute",
                   inset: 0,
