@@ -105,7 +105,13 @@ export default function Assessment() {
                   <div className="result-list">
                     {latest.gaps.map((g, i) => (
                       <div key={i} className="result-item item-gap">
-                        <div className="result-item-icon">△</div>
+                        <div className="result-item-icon" style={{ display: "flex", alignItems: "center" }}>
+                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M9 2.25L1.5 15.75h15L9 2.25z" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1.2" strokeLinejoin="round"/>
+                            <rect x="8.25" y="7" width="1.5" height="4.5" rx="0.75" fill="#92400E"/>
+                            <circle cx="9" cy="13" r="0.75" fill="#92400E"/>
+                          </svg>
+                        </div>
                         <div className="result-item-body">
                           <div className="result-item-label">
                             {g.area}
