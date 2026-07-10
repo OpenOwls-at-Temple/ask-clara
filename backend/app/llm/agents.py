@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 ASSESSMENT_MAX_OUTPUT = 2000
 RESUME_MAX_OUTPUT = 3000
+PLAN_MAX_OUTPUT = 2000
 
 
 def _extract_json(raw: str) -> str:
@@ -40,32 +41,38 @@ def _extract_json(raw: str) -> str:
     return stripped
 
 
+async def _call_and_parse(
+    system: str, user_content: str, max_tokens: int, agent_name: str
+) -> dict:
+    """Call the LLM and parse the JSON response, retrying once on malformed output."""
+    raw = await call_llm(system, user_content, max_tokens=max_tokens)
+    if raw is None:
+        return {"error": FALLBACK_MESSAGE}
+    try:
+        return json.loads(_extract_json(raw))
+    except json.JSONDecodeError:
+        logger.warning("%s agent returned malformed JSON; retrying once", agent_name)
+        raw = await call_llm(system, user_content, max_tokens=max_tokens)
+        if raw is None:
+            return {"error": FALLBACK_MESSAGE}
+        try:
+            return json.loads(_extract_json(raw))
+        except json.JSONDecodeError:
+            logger.error("%s agent: second attempt also malformed", agent_name)
+            return {"error": FALLBACK_MESSAGE}
+
+
 async def run_assessment_agent(context: dict) -> dict:
     """context keys: degree_level, major_program, track, expected_graduation,
     target_roles (list of titles ranked 1-3), resume_text (trimmed, contact stripped),
     linkedin_summary (optional).
     """
-    user_content = json.dumps(context)
-    raw = await call_llm(
-        prompts.ASSESSMENT_SYSTEM, user_content, max_tokens=ASSESSMENT_MAX_OUTPUT
+    return await _call_and_parse(
+        prompts.ASSESSMENT_SYSTEM,
+        json.dumps(context),
+        ASSESSMENT_MAX_OUTPUT,
+        "Assessment",
     )
-    if raw is None:
-        return {"error": FALLBACK_MESSAGE}
-    try:
-        result = json.loads(_extract_json(raw))
-    except json.JSONDecodeError:
-        logger.warning("Assessment agent returned malformed JSON; retrying once")
-        raw = await call_llm(
-            prompts.ASSESSMENT_SYSTEM, user_content, max_tokens=ASSESSMENT_MAX_OUTPUT
-        )
-        if raw is None:
-            return {"error": FALLBACK_MESSAGE}
-        try:
-            result = json.loads(_extract_json(raw))
-        except json.JSONDecodeError:
-            logger.error("Assessment agent: second attempt also malformed")
-            return {"error": FALLBACK_MESSAGE}
-    return result
 
 
 async def run_resume_agent(context: dict) -> dict:
@@ -73,24 +80,21 @@ async def run_resume_agent(context: dict) -> dict:
     target_role (dict with title + rank).
     Called once per ranked role — three times total.
     """
-    user_content = json.dumps(context)
-    raw = await call_llm(
-        prompts.RESUME_GENERATION_SYSTEM, user_content, max_tokens=RESUME_MAX_OUTPUT
+    return await _call_and_parse(
+        prompts.RESUME_GENERATION_SYSTEM,
+        json.dumps(context),
+        RESUME_MAX_OUTPUT,
+        "Resume",
     )
-    if raw is None:
-        return {"error": FALLBACK_MESSAGE}
-    try:
-        result = json.loads(_extract_json(raw))
-    except json.JSONDecodeError:
-        logger.warning("Resume agent returned malformed JSON; retrying once")
-        raw = await call_llm(
-            prompts.RESUME_GENERATION_SYSTEM, user_content, max_tokens=RESUME_MAX_OUTPUT
-        )
-        if raw is None:
-            return {"error": FALLBACK_MESSAGE}
-        try:
-            result = json.loads(_extract_json(raw))
-        except json.JSONDecodeError:
-            logger.error("Resume agent: second attempt also malformed")
-            return {"error": FALLBACK_MESSAGE}
-    return result
+
+
+async def run_planning_agent(context: dict) -> dict:
+    """context keys: degree_level, major_program, track, target_roles
+    (list of {rank, title}), assessment (strengths, gaps, recommendations).
+    """
+    return await _call_and_parse(
+        prompts.DEVELOPMENT_PLAN_SYSTEM,
+        json.dumps(context),
+        PLAN_MAX_OUTPUT,
+        "Planning",
+    )

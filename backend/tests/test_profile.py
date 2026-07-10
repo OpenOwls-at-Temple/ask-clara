@@ -65,7 +65,7 @@ async def test_student_cannot_see_other_students_profile(client, db_session):
     )
     db_session.add_all([user_a, user_b])
     await db_session.flush()
-    
+
     profile_b = Profile(
         id=uuid.uuid4(),
         user_id=user_b_id,
@@ -109,11 +109,14 @@ async def test_profile_upsert_replaces_target_roles(db_session):
         target_roles=[
             TargetRoleIn(rank=1, title="Software Engineer"),
             TargetRoleIn(rank=2, title="Data Scientist"),
-        ]
+        ],
     )
     profile1 = await upsert_profile(db_session, user_id, data1)
     assert len(profile1.target_roles) == 2
-    assert sorted([r.title for r in profile1.target_roles]) == ["Data Scientist", "Software Engineer"]
+    assert sorted([r.title for r in profile1.target_roles]) == [
+        "Data Scientist",
+        "Software Engineer",
+    ]
 
     data2 = ProfileIn(
         target_roles=[
@@ -127,6 +130,7 @@ async def test_profile_upsert_replaces_target_roles(db_session):
 
 def test_profile_accepts_yyyy_mm_expected_graduation():
     from datetime import date
+
     p = ProfileIn(expected_graduation="2026-05")
     assert p.expected_graduation == date(2026, 5, 1)
 
@@ -165,8 +169,9 @@ async def test_linkedin_url_stores_empty_raw_text(client, db_session):
         captured["doc"] = doc
         return "64a2b3c4d5e6f7890a1b2c3d"
 
-    with patch("app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin), \
-         patch("app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()):
+    with patch(
+        "app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin
+    ), patch("app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()):
         response = await client.post(
             "/api/profile/linkedin",
             json={"url": "https://linkedin.com/in/test"},
@@ -209,12 +214,14 @@ async def test_linkedin_export_upload_stores_parsed_text(client, db_session):
 
     fake_pdf_bytes = b"%PDF-1.4 fake"
 
-    with patch("app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin), \
-         patch("app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()), \
-         patch(
-             "app.routes.profile.run_in_threadpool",
-             new=AsyncMock(return_value="Parsed LinkedIn export text"),
-         ):
+    with patch(
+        "app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin
+    ), patch(
+        "app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()
+    ), patch(
+        "app.routes.profile.run_in_threadpool",
+        new=AsyncMock(return_value="Parsed LinkedIn export text"),
+    ):
         response = await client.post(
             "/api/profile/linkedin/upload",
             files={"file": ("linkedin.pdf", fake_pdf_bytes, "application/pdf")},

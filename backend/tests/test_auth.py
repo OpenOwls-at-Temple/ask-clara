@@ -56,7 +56,9 @@ async def test_login_rejects_non_temple_email():
         "name": "Test Student",
         "aud": "fake-client-id",
     }
-    with patch("app.routes.auth._verify_google_token", new=AsyncMock(return_value=fake_claims)):
+    with patch(
+        "app.routes.auth._verify_google_token", new=AsyncMock(return_value=fake_claims)
+    ):
         with patch("app.config.settings") as mock_settings:
             mock_settings.allowed_email_domain = "temple.edu"
             mock_settings.google_client_id = "fake-client-id"
@@ -71,7 +73,9 @@ async def test_login_rejects_non_temple_email():
             with pytest.raises(HTTPException) as exc_info:
                 await login(body, response, db)
             assert exc_info.value.status_code == 403
-            assert "Sign-in is restricted to @temple.edu accounts" in exc_info.value.detail
+            assert (
+                "Sign-in is restricted to @temple.edu accounts" in exc_info.value.detail
+            )
 
 
 def test_student_cannot_use_another_users_token():

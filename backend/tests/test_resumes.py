@@ -21,12 +21,18 @@ FAKE_RESUME_RESPONSE = """{
 
 @pytest.mark.asyncio
 async def test_resume_agent_returns_structured_output():
-    with patch("app.llm.agents.call_llm", new=AsyncMock(return_value=FAKE_RESUME_RESPONSE)):
+    with patch(
+        "app.llm.agents.call_llm", new=AsyncMock(return_value=FAKE_RESUME_RESPONSE)
+    ):
         from app.llm.agents import run_resume_agent
 
         result = await run_resume_agent(
             {
-                "profile": {"degree_level": "undergrad", "major_program": "CS", "track": "industry"},
+                "profile": {
+                    "degree_level": "undergrad",
+                    "major_program": "CS",
+                    "track": "industry",
+                },
                 "resume_content": {"raw_text": "Python developer."},
                 "linkedin_content": None,
                 "target_role": {"rank": 1, "title": "Software Engineer"},
@@ -145,7 +151,9 @@ async def test_generate_resumes_returns_three_drafts():
             "app.services.assessment_service.profile_service.get_profile",
             new=AsyncMock(return_value=mock_profile),
         ),
-        patch("app.llm.agents.call_llm", new=AsyncMock(return_value=FAKE_RESUME_RESPONSE)),
+        patch(
+            "app.llm.agents.call_llm", new=AsyncMock(return_value=FAKE_RESUME_RESPONSE)
+        ),
         patch(
             "app.services.assessment_service.insert_resume",
             new=AsyncMock(side_effect=["id_rank1", "id_rank2", "id_rank3"]),
@@ -206,14 +214,14 @@ async def test_student_cannot_generate_resumes_for_another_student(client, db_se
     )
     db_session.add_all([user_a, user_b])
     await db_session.flush()
-    
+
     profile_b = Profile(
         id=uuid.uuid4(),
         user_id=user_b_id,
         degree_level="undergrad",
         major_program="Computer Science",
         updated_at=datetime.utcnow(),
-        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d"
+        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d",
     )
     db_session.add(profile_b)
     await db_session.commit()
@@ -270,8 +278,13 @@ async def test_download_resume_returns_docx(client, db_session):
         )
 
     assert response.status_code == 200
-    assert "openxmlformats-officedocument.wordprocessingml" in response.headers["content-type"]
-    assert "clara-resume-software-engineer.docx" in response.headers["content-disposition"]
+    assert (
+        "openxmlformats-officedocument.wordprocessingml"
+        in response.headers["content-type"]
+    )
+    assert (
+        "clara-resume-software-engineer.docx" in response.headers["content-disposition"]
+    )
     assert len(response.content) > 0
 
 

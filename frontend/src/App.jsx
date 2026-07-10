@@ -5,6 +5,7 @@ import Assessment from "./pages/Assessment";
 import Dashboard from "./pages/Dashboard";
 import Intake from "./pages/Intake";
 import JobLeads from "./pages/JobLeads";
+import Plan from "./pages/Plan";
 import Resumes from "./pages/Resumes";
 import SignIn from "./pages/SignIn";
 
@@ -49,6 +50,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Resumes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/plan"
+          element={
+            <ProtectedRoute>
+              <Plan />
             </ProtectedRoute>
           }
         />

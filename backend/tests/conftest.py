@@ -25,17 +25,15 @@ async def db_session(test_engine):
     async with test_engine.connect() as connection:
         # Start the outer transaction
         transaction = await connection.begin()
-        
+
         # Bind the session to the connection running in the transaction
         session_factory = async_sessionmaker(
-            bind=connection,
-            expire_on_commit=False,
-            class_=AsyncSession
+            bind=connection, expire_on_commit=False, class_=AsyncSession
         )
         session = session_factory()
-        
+
         yield session
-        
+
         await session.close()
         # Roll back all changes made during the test
         await transaction.rollback()
