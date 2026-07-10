@@ -287,7 +287,8 @@ User action (frontend)
 |--------|---------------|--------|
 | Assessment usefulness | Manual review of 20 sampled assessments by testers/counselors | >80% rated useful |
 | Resume groundedness | Manual check that drafts contain no fabricated facts | 100% (zero fabrications) |
-| Response time | Logged per LLM call | <5 s p95 for assessments |
+| Response time — cached views | Logged per request | <1 s p95 to display a saved assessment/resume/plan (the common case — results are cached, never regenerated for display) |
+| Response time — fresh generation | Logged per LLM call | <60 s p95 for assessment generation (a ~2,000-output-token call takes 20–60 s on current models; the original <5 s target predated the raised output caps and was physically unreachable) |
 | JSON parse success rate | Logged in the service layer | >98% |
 | Fallback rate | Logged when a fallback is returned | <2% |
 | Cost per active student | API spend ÷ active users | Within grant budget (~$3,000 / ~500) |
