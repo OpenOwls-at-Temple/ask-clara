@@ -36,6 +36,7 @@ are git-driven, so you do not need hosting-dashboard logins to contribute.
 | Google OAuth **client secret** | Everyone (backend local `.env`) | Shared privately by the project owner — never committed, never posted in chat |
 | An LLM API key for local dev | Everyone | **Use your own personal key.** Anthropic (`LLM_PROVIDER=anthropic`) or a free-tier Gemini key (`LLM_PROVIDER=gemini`) — the backend supports both. Never use the shared grant-funded key locally |
 | A `@temple.edu` Google account | Everyone | Sign-in is domain-restricted (`ALLOWED_EMAIL_DOMAIN=temple.edu`); you sign into the app with your own Temple account |
+| OAuth **test user** registration | Everyone (while the consent screen is in Testing mode) | The project owner adds your `@temple.edu` email under Test users in Google Cloud Console — see §1.2. Without it, Google blocks sign-in before Clara is ever reached |
 | Supabase staging connection string (session mode, port 5432) | Only whoever runs staging migrations | Shared privately by the project owner, per-task |
 | Supabase / MongoDB Atlas / Vercel / Render dashboards | Owner + at most 1–2 maintainers | Dashboard invites where the plan allows (see §1.1) |
 
@@ -64,6 +65,34 @@ Recommended setup, in order of preference:
 Store all shared secrets (client secret, staging connection strings, JWT secret) in a
 password manager vault shared with maintainers only — never in the repo, never in Slack/Discord
 history, never in screenshots.
+
+### 1.2 Google SSO: getting testers past the consent screen
+
+Sign-in has **two independent gates**, and both must pass:
+
+1. **Google's OAuth consent screen.** In Google Cloud Console → *APIs & Services →
+   OAuth consent screen*, the app has a publishing status:
+   - **Testing** (current default): only Google accounts explicitly listed under
+     **Test users** can sign in — anyone else gets an "access blocked" error from Google
+     before Clara's backend is ever reached. Max 100 test users.
+   - **In production**: any Google account passes Google's step; Clara's own domain check
+     (gate 2) becomes the sole access control. Clara only requests basic identity
+     (name/email/profile), so publishing does not trigger Google's sensitive-scope
+     verification review.
+2. **Clara's domain restriction.** The backend rejects any verified identity that isn't
+   `@temple.edu` (`ALLOWED_EMAIL_DOMAIN`), regardless of consent-screen status.
+
+What this means in practice:
+
+- **While the consent screen is in Testing** (dev/test phase): every developer or tester
+  must have their **`@temple.edu` Google account** added as a test user by the project
+  owner. This is part of the owner's onboarding checklist (§7).
+- **Before the student pilot**: the consent screen must be switched to **In production** —
+  500 students can't be individually allowlisted (100-user cap), and the `temple.edu`
+  domain check already enforces "Temple only" at scale.
+- **If the staging or production URL ever changes**: add the new URL to the OAuth client's
+  **Authorized JavaScript origins** (`http://localhost:5173` and the staging URL are
+  already registered), or sign-in silently breaks with an origin error.
 
 ---
 
@@ -271,6 +300,9 @@ retry, don't panic); long LLM generations can hit the Vercel proxy timeout (see
 ### For the project owner (per new developer)
 
 - [ ] Invite to the GitHub org/repo with write access
+- [ ] Add their `@temple.edu` email as an OAuth **test user** (Google Cloud Console →
+      APIs & Services → OAuth consent screen → Test users) — required while the consent
+      screen is in Testing mode (§1.2)
 - [ ] Confirm branch protection on `main`: require PRs, ≥1 review, CI green (Settings → Branches)
 - [ ] Share via password manager / private channel: Google client ID + secret
 - [ ] Confirm they have (or help them create) a personal Anthropic or Gemini API key
