@@ -46,6 +46,7 @@
 | `JWT_SECRET` | Yes | Secret for signing session tokens |
 | `ALLOWED_EMAIL_DOMAIN` | Yes | Restrict sign-in (e.g. `temple.edu`) |
 | `ENVIRONMENT` | Yes | `local`, `staging`, or `production` |
+| `SCAN_TRIGGER_SECRET` | Phase 2 | Shared secret for the GitHub Actions job-scan trigger — set the same value in Render and in GitHub Actions secrets (see `architecture-planning.md` → Key Design Decisions) |
 
 ### Frontend
 | Variable | Required | Description |
