@@ -64,7 +64,7 @@ clara/
 | Data layer | Hybrid: Postgres + MongoDB | Postgres for relational profile/preference data; MongoDB for document-shaped resumes and generated artifacts (per faculty guidance) |
 | Multi-agent design | Prompt-per-agent behind one orchestrator | Maps to the proposal's assessment/planning/document/matching agents while staying debuggable |
 | Resume generation | LLM drafts, user edits, nothing fabricated | Materials must reflect the student's real record |
-| Job scanning (Phase 2) | Scheduled backend job + stored leads | Keeps scraping off the request path and respectful of source sites |
+| Job scanning (Phase 2) | GitHub Actions cron → authenticated trigger endpoint → background task + stored leads | Keeps scraping off the user request path and respectful of source sites. **Do not use an in-process scheduler (APScheduler etc.):** Render's free tier stops the process after ~15 min idle, so an internal timer would silently never fire. Instead, a scheduled GitHub Actions workflow (free, versioned in-repo, manual-run capable via `workflow_dispatch`) POSTs to `/api/admin/scan-jobs` with a shared secret; the request wakes the service, the endpoint validates the secret, starts the scan as a background task, and returns 202. The workflow then polls the status endpoint until completion — the polling doubles as keep-alive traffic so Render doesn't spin the instance down mid-scan. Decided 2026-07-10. |
 | Cross-DB write consistency | Write-order + compensating cleanup | A write spans MongoDB (the document) and Postgres (the row that references its `_id`), which can't share one transaction. Write the Mongo document **first**, then the Postgres row; if the Postgres write fails, the route **must** catch the error and delete the just-created Mongo document so no orphan is left. A periodic sweep that deletes unreferenced documents is an acceptable simpler alternative for the pilot. |
 
 ---
@@ -155,8 +155,10 @@ clara/
 | POST | `/api/plan/generate` | (Phase 2) Generate 6-month development plan |
 | GET | `/api/leads` | (Phase 2) List matched job leads |
 | POST | `/api/leads/:id/materials` | (Phase 2) Tailored resume + cover letter + employer brief |
+| POST | `/api/admin/scan-jobs` | (Phase 2) Trigger the job-leads scan; called by the scheduled GitHub Actions workflow, returns 202 and runs the scan as a background task |
+| GET | `/api/admin/scan-jobs/status` | (Phase 2) Scan progress/completion; polled by the workflow (doubles as keep-alive) |
 
-All non-auth routes require a valid session and enforce that the record belongs to the requesting user.
+All non-auth routes require a valid session and enforce that the record belongs to the requesting user. Exception: the Phase 2 `/api/admin/scan-jobs*` endpoints are machine-to-machine — they authenticate via a `SCAN_TRIGGER_SECRET` shared-secret header (set in both Render and GitHub Actions secrets), not a user session.
 
 ---
 
@@ -177,6 +179,7 @@ All non-auth routes require a valid session and enforce that the record belongs 
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google SSO credentials |
 | `JWT_SECRET` | Secret for signing session tokens |
 | `ENVIRONMENT` | `local`, `staging`, or `production` |
+| `SCAN_TRIGGER_SECRET` | (Phase 2) Shared secret authenticating the GitHub Actions job-scan trigger |
 
 ---
 
