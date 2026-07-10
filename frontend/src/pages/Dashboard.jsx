@@ -52,6 +52,18 @@ export default function Dashboard() {
       onAction: () => navigate("/resumes"),
       locked: !profileComplete,
     },
+    {
+      key: "plan",
+      icon: "🗺️",
+      iconClass: profileComplete ? "icon-cherry" : "",
+      title: "Development Plan",
+      desc: "A 6-month roadmap of skills, experiences, and credentials to reach your target roles.",
+      status: !profileComplete ? "locked" : "active",
+      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      action: "View / Generate",
+      onAction: () => navigate("/plan"),
+      locked: !profileComplete,
+    },
   ];
 
   const badgeClass = {

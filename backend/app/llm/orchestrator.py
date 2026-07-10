@@ -47,6 +47,28 @@ def build_assessment_context(
     }
 
 
+def build_plan_context(profile: dict, assessment: dict) -> dict:
+    """Assemble the minimal context dict for the development-plan agent.
+
+    The saved assessment already excludes PII; completed plan items and
+    raw resume text are deliberately not sent.
+    """
+    return {
+        "degree_level": profile.get("degree_level"),
+        "major_program": profile.get("major_program"),
+        "track": profile.get("track"),
+        "target_roles": [
+            {"rank": r["rank"], "title": r["title"]}
+            for r in sorted(profile.get("target_roles", []), key=lambda r: r["rank"])
+        ],
+        "assessment": {
+            "strengths": assessment.get("strengths", []),
+            "gaps": assessment.get("gaps", []),
+            "recommendations": assessment.get("recommendations", []),
+        },
+    }
+
+
 def build_resume_context(
     profile: dict,
     resume_content: dict,

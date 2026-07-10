@@ -5,11 +5,11 @@
 
 ## Current Phase
 
-**Active Phase:** Phase 1 — Core MVP
+**Active Phase:** Phase 2 — Enhanced Features
 
 ## Status Summary
 
-Features 1–5 are implemented. Phase 1 MVP is complete.
+Features 1–5 (Phase 1 MVP) are implemented and deployed to staging. Phase 2 is underway: Feature 6 (development plan) is implemented and browser-verified.
 
 ---
 
@@ -25,6 +25,7 @@ Features 1–5 are implemented. Phase 1 MVP is complete.
 - [x] 2026-06-24 — Fixed resume download gap (Feature 5 AC3): added `GET /api/resumes/{id}/download` endpoint that generates a DOCX file using `python-docx` (already in requirements.txt) and streams it back with the correct Content-Disposition header. Uses structured sections for clean formatting, falls back to line-by-line rendering when `edited_text` is present. Ownership is enforced (returns 404 for wrong user). Added `requestBlob` helper to `auth.js`, `downloadResume` service function, and updated the "Download .txt" button to "Download .docx" in `Resumes.jsx`. Added 2 new tests (DOCX content-type check, cross-user ownership block). All 39 tests pass.
 - [x] 2026-06-24 — Fixed LinkedIn intake gap (Feature 2 AC2): added `POST /api/profile/linkedin/upload` endpoint that accepts a LinkedIn PDF/DOCX export, parses its text (reusing the resume parsing pipeline), and stores the content as `raw_text` so the LLM receives actual profile content. Fixed the URL-only path to store an empty `raw_text` (URL was previously stored as `raw_text`, polluting LLM context with a bare URL string). Added a LinkedIn export upload zone to `Intake.jsx` with instructions, alongside the existing URL reference field. Updated `useProfile` hook and `profile.js` service. Added 3 new tests (URL stores empty raw_text, export upload parses text, invalid file type rejected). All 37 tests pass.
 - [x] 2026-06-26 — Expanded resume generation prompt quality (`improve/resume-prompt-quality`): added active-verb rules, accomplished/measured-by/by-doing bullet structure guidance, cliché and fabrication guards, date formatting rules, and degree/track-based section ordering. Added Research/Publications as a valid section heading for PhD and academia-track students. Synced `ai_specs/llm-integration.md` to match. Output schema and call pattern unchanged.
+- [x] 2026-07-10 — Feature 6 implemented and browser-verified (`feature/development-plan`): `models/plan.py` (`DevelopmentPlan` — UUID id, `profile_id` FK, `horizon_months`, JSONB `items`) with Alembic migration `895488924f88`; `DEVELOPMENT_PLAN_SYSTEM` prompt updated with explicit JSON schema (same fix as Features 4/5 — spec sync to `ai_specs/llm-integration.md` Prompt 3 pending explicit instruction); `run_planning_agent` in `agents.py` plus a shared `_call_and_parse` helper that deduplicates the call/parse/retry-once logic across all three agents; `build_plan_context` in orchestrator (sends profile basics + ranked roles + saved assessment only — no PII, no raw resume text); `plan_service.py` (`generate_plan` requires profile + roles + latest saved MongoDB assessment, injects `status: "pending"` into every item server-side, persists to Postgres; `get_latest_plan`; ownership-scoped `update_item_status`); `routes/plan.py` (`POST /api/plan/generate` with atomic quota gate + refund on failure, `GET /api/plan` returns cached latest plan, `PATCH /api/plan/{id}/items/{index}` for mark complete/pending, 404 on wrong owner or bad index); frontend `Plan.jsx` page (generate/regenerate card, progress bar, checkbox milestones with persisted toggle, counselor note), `usePlan` hook, `services/plan.js`, `/plan` route + NavBar link + fourth Dashboard card; 15 new backend tests (agent, context PII, service, ownership integration) and 6 new Jest tests. All 54 backend + 28 frontend tests pass. Note: running `black` over `tests/` reformatted four pre-existing test files (style-only diff).
 - [x] 2026-06-30 — Profile UI enhancements and frontend test suite (`improve/profile-ui-and-tests`): replaced triangle gap icon in `Assessment.jsx` with an inline SVG yellow warning sign; added auto-collapse of the Background & Goals section in `Intake.jsx` once degree and ranked roles are filled (with an Edit button to re-expand); added PDF file preview via blob URL when the user selects a resume (cleared after upload); added collapsed card CSS classes and a green check circle indicator to `index.css`; added favicon and apple-touch-icon. Wired up Jest + Babel + jsdom and added 22 tests across `Assessment.test.jsx` and `Intake.test.jsx` covering collapse logic, blob URL lifecycle, and SVG icon rendering. Fixed Babel preset version conflict (pinned `@babel/preset-env` and `@babel/preset-react` to `^7.22.0` to match `@babel/core@7.x`); fixed ESLint flat-config to add a CommonJS env override for `src/__mocks__/**` so `require`/`module` are recognized.
 
 
@@ -53,6 +54,8 @@ _(none)_
 - [x] Feature 4: AI assessment — complete (see 2026-06-24 entry above)
 - [x] Frontend UI redesign — complete (see 2026-06-24 entry below)
 - [x] Feature 5: generate three tailored resumes — complete (see 2026-06-24 entry above)
+- [x] Feature 6: personalized 6-month development plan — complete (see 2026-07-10 entry above)
+- [ ] Feature 7: job leads scanning & alerts (next Phase 2 feature)
 
 ---
 
@@ -72,4 +75,5 @@ _(none)_
 | 2026-06-26 | Staging deployment live and smoke tested end-to-end: sign-in (Google SSO), intake (resume upload, LinkedIn, questionnaire), AI assessment, and resume generation all working on real infrastructure (Vercel + Render + Supabase + MongoDB Atlas). URL: https://ask-clara-zeta.vercel.app |
 | 2026-06-26 | Expanded resume generation prompt: active-verb + bullet-structure rules, cliché/fabrication guards, date formatting, degree/track-based section ordering, Research/Publications heading for PhD/academia; synced `ai_specs/llm-integration.md` |
 | 2026-06-30 | Profile UI enhancements: SVG warning icon in Assessment, auto-collapse + Edit button + PDF preview in Intake, favicon/apple-touch-icon; wired Jest + Babel + jsdom; 22 frontend tests; fixed Babel 7/8 peer conflict and ESLint CommonJS mock override |
+| 2026-07-10 | Entered Phase 2. Implemented Feature 6 (6-month development plan): `development_plans` table + migration, planning agent with schema-embedded prompt, plan service with server-injected item status, quota-gated generate route + mark-complete PATCH, Plan.jsx page with progress bar and persistent checkboxes; 15 backend + 6 frontend tests; browser-verified end-to-end with real LLM call |
 

@@ -969,6 +969,72 @@ body {
 .result-item.item-gap      { border-left: 3px solid var(--warn); }
 .result-item.item-rec      { border-left: 3px solid var(--cherry); }
 
+/* ────────────────────────────────────────────────────────────── */
+/*  DEVELOPMENT PLAN                                              */
+/* ────────────────────────────────────────────────────────────── */
+.plan-progress {
+  margin-bottom: var(--s6);
+}
+
+.plan-progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--s2);
+  font-size: 0.8125rem;
+}
+
+.plan-progress-count { color: var(--ink); font-weight: 600; }
+.plan-progress-pct   { color: var(--mist); }
+
+.plan-progress-track {
+  height: 8px;
+  background: var(--fog);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.plan-progress-fill {
+  height: 100%;
+  background: var(--cherry);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.result-item.plan-item { border-left: 3px solid var(--cherry); }
+.result-item.plan-item-done { border-left-color: var(--success); }
+
+.plan-item-done .result-item-body {
+  color: var(--mist);
+}
+
+.plan-item-done .result-item-label {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.plan-item-check {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--bone);
+  border-radius: 6px;
+  background: white;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.plan-item-check:hover { border-color: var(--cherry); }
+
+.plan-item-check.checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
 .counselor-note {
   margin-top: var(--s8);
   padding: var(--s4) var(--s5);

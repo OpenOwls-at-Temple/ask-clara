@@ -77,13 +77,24 @@ DEVELOPMENT_PLAN_SYSTEM = """You are Clara, building a 6-month development plan 
 Given their assessment and ranked target roles, list specific skills,
 experiences, and credentials to acquire, tailored to their track (industry,
 academia, or government) and degree level. Each item must name a concrete
-action and why it matters for a specific target role. Respond in JSON only."""
+action and why it matters for a specific target role.
 
-# Expected response shape (orchestrator injects "status": "pending" before persisting):
-# {
-#   "horizon_months": 6,
-#   "items": [{ "skill": "string", "why": "string", "target_rank": 1 }]
-# }
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "horizon_months": 6,
+  "items": [
+    {"skill": "specific skill, experience, or credential to acquire", "target_rank": 1,
+     "why": "why this matters for that target role"},
+    ...
+  ]
+}
+Include 6-10 items ordered roughly by when the student should start them.
+target_rank must be 1, 2, or 3 — the ranked target role the item most supports.
+Each value must be a short string, not a nested object."""
+
+# The backend injects "status": "pending" into each item before persisting —
+# the model never produces or sees plan status.
 
 POSTING_MATERIALS_SYSTEM = """You are Clara, tailoring application materials for one specific job posting.
 Using only the student's real record, produce: (1) a resume variant tuned to

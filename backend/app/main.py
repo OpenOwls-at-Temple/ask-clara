@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routes import auth, profile, assessment, documents, leads
+from app.routes import auth, profile, assessment, documents, leads, plan
 
 app = FastAPI(title="Clara API")
 
@@ -33,4 +33,5 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(profile.router, prefix="/api", tags=["profile"])
 app.include_router(assessment.router, prefix="/api", tags=["assessment"])
 app.include_router(documents.router, prefix="/api", tags=["documents"])
+app.include_router(plan.router, prefix="/api", tags=["plan"])
 app.include_router(leads.router, prefix="/api", tags=["leads"])

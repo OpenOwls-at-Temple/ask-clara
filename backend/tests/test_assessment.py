@@ -106,7 +106,9 @@ async def test_run_assessment_raises_when_no_resume():
 async def test_run_assessment_returns_structured_result():
     mock_profile = _make_mock_profile()
     mock_mongo = _make_mock_mongo()
-    fake_llm_response = '{"strengths": ["Python", "FastAPI"], "gaps": [], "recommendations": []}'
+    fake_llm_response = (
+        '{"strengths": ["Python", "FastAPI"], "gaps": [], "recommendations": []}'
+    )
 
     with (
         patch(
@@ -154,7 +156,9 @@ async def test_run_assessment_raises_runtime_on_llm_error():
 
 
 @pytest.mark.asyncio
-async def test_student_cannot_trigger_assessment_for_another_student(client, db_session):
+async def test_student_cannot_trigger_assessment_for_another_student(
+    client, db_session
+):
     from app.auth import create_access_token
     from app.models.user import User, UserRole
     from app.models.profile import Profile
@@ -179,14 +183,14 @@ async def test_student_cannot_trigger_assessment_for_another_student(client, db_
     )
     db_session.add_all([user_a, user_b])
     await db_session.flush()
-    
+
     profile_b = Profile(
         id=uuid.uuid4(),
         user_id=user_b_id,
         degree_level="undergrad",
         major_program="Computer Science",
         updated_at=datetime.utcnow(),
-        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d"
+        resume_doc_id="64a2b3c4d5e6f7890a1b2c3d",
     )
     db_session.add(profile_b)
     await db_session.commit()

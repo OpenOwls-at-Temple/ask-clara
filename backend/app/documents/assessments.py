@@ -19,6 +19,15 @@ async def get_assessments_for_user(
     return [_serialize(doc) async for doc in cursor]
 
 
+async def get_latest_assessment_for_user(
+    mongo: AsyncIOMotorDatabase, user_id: str
+) -> dict | None:
+    doc = await mongo["assessments"].find_one(
+        {"user_id": user_id}, sort=[("created_at", -1)]
+    )
+    return _serialize(doc) if doc else None
+
+
 def _serialize(doc: dict) -> dict:
     doc["id"] = str(doc.pop("_id"))
     return doc

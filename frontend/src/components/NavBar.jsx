@@ -6,6 +6,7 @@ const NAV_LINKS = [
   { to: "/intake",    label: "Profile" },
   { to: "/assessment",label: "Assessment" },
   { to: "/resumes",   label: "Resumes" },
+  { to: "/plan",      label: "Plan" },
 ];
 
 export default function NavBar() {
