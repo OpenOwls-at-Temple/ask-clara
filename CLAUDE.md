@@ -65,7 +65,8 @@ React SPA (Vite)
     → Business logic services
       → LLM orchestrator (backend/app/llm/orchestrator.py)
         → LLM service wrapper (backend/app/llm/service.py)
-          → Anthropic API (claude-sonnet-4-6)
+          → LLM provider API — Anthropic claude-sonnet-4-6 by default;
+            Gemini / DeepSeek switchable via LLM_PROVIDER env var
       → PostgreSQL (structured data: users, profiles, ranked roles, plans, leads)
       → MongoDB (documents: parsed resumes, LinkedIn extracts, generated resumes, assessments)
 ```
@@ -73,7 +74,7 @@ React SPA (Vite)
 **Key layout:**
 - `backend/app/routes/` — one file per resource (`assessment.py`, `profile.py`, etc.)
 - `backend/app/services/` — business logic; routes call services, not DB directly
-- `backend/app/llm/` — the entire LLM layer: `prompts.py` (all prompts), `agents.py` (assessment, planning, document, job-match agents), `orchestrator.py` (context assembly + token budget), `service.py` (Anthropic client + retry/fallback)
+- `backend/app/llm/` — the entire LLM layer: `prompts.py` (all prompts), `agents.py` (assessment, planning, document, job-match agents), `orchestrator.py` (context assembly + token budget), `service.py` (provider-switchable client — Anthropic default, Gemini/DeepSeek via `LLM_PROVIDER` — with retry/fallback)
 - `backend/app/models/` — SQLAlchemy models; `backend/app/documents/` — MongoDB access
 - `frontend/src/pages/` — full-page views; `frontend/src/components/` — reusable UI; `frontend/src/services/` — API call functions (no LLM calls here, ever)
 
@@ -102,4 +103,4 @@ React SPA (Vite)
 - Never fabricate a student's experience in generated resumes or cover letters. Ungrounded content goes in `notes_for_student`, not in document sections.
 - Clara complements the Temple Career Center — never frame it as a replacement in user-facing copy.
 - All prompts are defined only in `backend/app/llm/prompts.py` — never inline them in routes or agents.
-- LLM calls in tests must be mocked — never hit the real Anthropic API in CI.
+- LLM calls in tests must be mocked — never hit a real model API (Anthropic, Gemini, or DeepSeek) in CI.
