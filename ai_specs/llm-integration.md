@@ -158,7 +158,21 @@ You are Clara, building a 6-month development plan for a STEM student.
 Given their assessment and ranked target roles, list specific skills,
 experiences, and credentials to acquire, tailored to their track (industry,
 academia, or government) and degree level. Each item must name a concrete
-action and why it matters for a specific target role. Respond in JSON only.
+action and why it matters for a specific target role.
+
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "horizon_months": 6,
+  "items": [
+    {"skill": "specific skill, experience, or credential to acquire", "target_rank": 1,
+     "why": "why this matters for that target role"},
+    ...
+  ]
+}
+Include 6-10 items ordered roughly by when the student should start them.
+target_rank must be 1, 2, or 3 — the ranked target role the item most supports.
+Each value must be a short string, not a nested object.
 ```
 
 **User Input:**
@@ -175,7 +189,8 @@ The student's saved assessment plus profile and ranked target roles.
 ```
 
 **Notes:**
-- **Schema mapping:** the model output omits `status`. Before persisting `items` to the Postgres `development_plans.items` JSONB array, the orchestrator must inject `"status": "pending"` into each item (status vocabulary: `pending` → `complete`, per Feature 6). The model never sets or sees plan status.
+- **Schema mapping:** the model output omits `status`. Before persisting `items` to the Postgres `development_plans.items` JSONB array, the service must inject `"status": "pending"` into each item (status vocabulary: `pending` → `complete`, per Feature 6). The model never sets or sees plan status.
+- The exact JSON output schema is embedded in the system prompt (same fix as Prompts 1–2) so the model cannot invent its own structure. `horizon_months` is fixed at 6; items are capped at 6–10.
 
 ---
 
@@ -237,7 +252,7 @@ User action (frontend)
 | Concern | Decision |
 |---------|----------|
 | Max input size | **Deterministic pre-truncation:** cap parsed experience to the ~3 most recent/relevant roles and enforce a hard input-string limit (start at ~1,500 tokens) *before* building the prompt. Do not pass raw multi-page documents and do not rely on the model to summarize them. Numbers are configurable, but truncation happens in code, not in the LLM. |
-| Max output tokens | ~1,200 for resume drafts; ~600 for assessments — keep outputs bounded |
+| Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans (constants in `agents.py`) — keep outputs bounded. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
 | Per-call budget awareness | Orchestrator estimates tokens before each call and logs cost; agents reuse stored assessments instead of re-running |
 | What is excluded from context | Contact details (PII), unrelated past target roles, completed plan items |
 | Caching | Save generated assessments/resumes so viewing them later does not re-call the model |
@@ -284,4 +299,7 @@ User action (frontend)
 | Date | Prompt | Change Made | Reason |
 |------|--------|-------------|--------|
 | 2026-06-23 | All | Initial versions | Baseline for Phase 1 build |
+| 2026-06-24 | Prompts 1–2 | Embedded the exact JSON output schema in each system prompt; raised output caps (assessment 600 → 2000) | Model invented its own schema and 600 tokens truncated responses mid-JSON during browser testing |
+| 2026-06-26 | Prompt 2 | Active-verb + accomplished/measured-by/by-doing bullet rules, cliché/fabrication guards, date formatting, degree/track-based section ordering | Resume draft quality |
+| 2026-07-10 | Prompt 3 | Embedded the exact JSON output schema; 6–10 item count and short-string value guidance | Same schema fix as Prompts 1–2, applied when Feature 6 shipped |
 | YYYY-MM-DD | Prompt 2 | (planned) Add explicit "no fabrication" validator pass | Guard against invented experience in resumes |
