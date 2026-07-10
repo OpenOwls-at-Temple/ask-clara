@@ -11,7 +11,7 @@
 | Environment | Purpose | URL |
 |-------------|---------|-----|
 | Local | Development and testing on your own machine | `http://localhost:5173` |
-| Staging | Pre-production testing, shared with the team | `https://clara-staging.vercel.app` (TBD) |
+| Staging | Pre-production testing, shared with the team | `https://ask-clara-zeta.vercel.app` (live since 2026-06-26) |
 | Production | Live pilot for CST students | `https://clara.vercel.app` (TBD) |
 
 ---
@@ -33,7 +33,12 @@
 ### Backend
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key for LLM agents |
+| `LLM_PROVIDER` | Yes | Active LLM provider: `anthropic` (default), `gemini`, or `deepseek` (see `llm-integration.md`) |
+| `ANTHROPIC_API_KEY` | When `LLM_PROVIDER=anthropic` | Anthropic API key for LLM agents |
+| `ANTHROPIC_MODEL` | No | Anthropic model ID (default `claude-sonnet-4-6`) |
+| `GEMINI_API_KEY` / `GEMINI_MODEL` | When `LLM_PROVIDER=gemini` | Gemini API key and model (default `gemini-2.5-flash`) |
+| `DEEPSEEK_API_KEY` / `DEEPSEEK_MODEL` | When `LLM_PROVIDER=deepseek` | DeepSeek API key and model (default `deepseek-chat`) |
+| `FRONTEND_ORIGIN` | Yes | Frontend origin allowed by CORS (e.g. `http://localhost:5173` locally, the Vercel URL on staging) |
 | `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `MONGODB_URI` | Yes | MongoDB Atlas connection string |
 | `GOOGLE_CLIENT_ID` | Yes | Google SSO client ID |
@@ -54,33 +59,13 @@
 
 ## Local Development Setup
 
-### Prerequisites
-- Node.js 20+
-- Python 3.11+
-- PostgreSQL 15+ (or a Supabase connection string)
-- A MongoDB connection (local or Atlas)
-- A free Anthropic API key from console.anthropic.com
-- Google OAuth credentials for a test client
+**The authoritative local setup guide is `docs/onboarding.md` §2** — it covers the Docker Compose databases (Postgres 15 + MongoDB 6), `.env` values, Alembic migrations, and setup verification. This section is intentionally not duplicated here to avoid drift.
 
-### Steps
+Quick reference only:
 
-```bash
-# 1. Clone the repository
-git clone [repo-url]
-cd clara
-
-# 2. Set up backend
-cd backend
-cp .env.example .env        # Fill in your actual values
-pip install -r requirements.txt
-python -m uvicorn app.main:app --reload
-
-# 3. Set up frontend (in a new terminal)
-cd frontend
-cp .env.example .env        # Fill in your actual values
-npm install
-npm run dev
-```
+- Prerequisites: Python 3.11+, Node 20+, Docker Desktop, a `@temple.edu` Google account.
+- LLM key: **use your own personal key** — Anthropic (`LLM_PROVIDER=anthropic`, paid) or a free-tier Gemini key (`LLM_PROVIDER=gemini`). Never use the shared grant-funded key locally. (Anthropic has no free API tier.)
+- Google OAuth client ID + secret: shared privately by the project owner (see `docs/onboarding.md` §1).
 
 ---
 
@@ -143,4 +128,4 @@ Merging to `main` triggers automatic deployment to staging. Production deploys a
 - All secrets live in the hosting platform's environment variable settings, never in code.
 - Rotate `JWT_SECRET`, `ANTHROPIC_API_KEY`, and the Google secret if ever committed accidentally.
 - Each environment (local, staging, production) uses its own separate API keys and databases.
-- Students use their own personal Anthropic keys for local development.
+- Students use their own personal LLM keys (Anthropic or free-tier Gemini) for local development.
