@@ -42,17 +42,26 @@ def _extract_json(raw: str) -> str:
 
 
 async def _call_and_parse(
-    system: str, user_content: str, max_tokens: int, agent_name: str
+    system: str,
+    user_content: str,
+    max_tokens: int,
+    agent_name: str,
+    schema: dict | None = None,
 ) -> dict:
-    """Call the LLM and parse the JSON response, retrying once on malformed output."""
-    raw = await call_llm(system, user_content, max_tokens=max_tokens)
+    """Call the LLM and parse the JSON response, retrying once on malformed output.
+
+    On the Anthropic path the schema is enforced by the API (structured outputs),
+    so the parse always succeeds and the retry never fires; the extraction +
+    retry logic below is the fallback for Gemini/DeepSeek.
+    """
+    raw = await call_llm(system, user_content, max_tokens=max_tokens, schema=schema)
     if raw is None:
         return {"error": FALLBACK_MESSAGE}
     try:
         return json.loads(_extract_json(raw))
     except json.JSONDecodeError:
         logger.warning("%s agent returned malformed JSON; retrying once", agent_name)
-        raw = await call_llm(system, user_content, max_tokens=max_tokens)
+        raw = await call_llm(system, user_content, max_tokens=max_tokens, schema=schema)
         if raw is None:
             return {"error": FALLBACK_MESSAGE}
         try:
@@ -72,6 +81,7 @@ async def run_assessment_agent(context: dict) -> dict:
         json.dumps(context),
         ASSESSMENT_MAX_OUTPUT,
         "Assessment",
+        schema=prompts.ASSESSMENT_SCHEMA,
     )
 
 
@@ -85,6 +95,7 @@ async def run_resume_agent(context: dict) -> dict:
         json.dumps(context),
         RESUME_MAX_OUTPUT,
         "Resume",
+        schema=prompts.RESUME_SCHEMA,
     )
 
 
@@ -97,4 +108,5 @@ async def run_planning_agent(context: dict) -> dict:
         json.dumps(context),
         PLAN_MAX_OUTPUT,
         "Planning",
+        schema=prompts.DEVELOPMENT_PLAN_SCHEMA,
     )

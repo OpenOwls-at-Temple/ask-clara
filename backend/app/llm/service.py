@@ -23,9 +23,14 @@ def _get_anthropic_client() -> anthropic.AsyncAnthropic:
 
 
 async def _call_anthropic(
-    system: str, user_content: str, max_tokens: int
+    system: str, user_content: str, max_tokens: int, schema: dict | None = None
 ) -> str | None:
     client = _get_anthropic_client()
+    # With a schema, the API constrains generation to valid JSON in exactly
+    # that shape (structured outputs) — no fences, no prose, no invented keys.
+    extra = {}
+    if schema is not None:
+        extra["output_config"] = {"format": {"type": "json_schema", "schema": schema}}
     for attempt in range(2):
         try:
             message = await client.messages.create(
@@ -33,6 +38,7 @@ async def _call_anthropic(
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user_content}],
+                **extra,
             )
             return message.content[0].text
         except anthropic.APITimeoutError:
@@ -138,15 +144,21 @@ async def call_llm(
     system: str,
     user_content: str,
     max_tokens: int = 1024,
+    schema: dict | None = None,
 ) -> str | None:
-    """Route to the configured LLM provider. Set LLM_PROVIDER in the environment."""
+    """Route to the configured LLM provider. Set LLM_PROVIDER in the environment.
+
+    `schema` is a JSON Schema for the expected response. Anthropic enforces it
+    server-side via structured outputs; Gemini/DeepSeek don't support it here
+    and fall back to the prompt-embedded schema plus parse-and-retry in agents.py.
+    """
     provider = settings.llm_provider.lower()
     if provider == "gemini":
         return await _call_gemini(system, user_content, max_tokens)
     if provider == "deepseek":
         return await _call_deepseek(system, user_content, max_tokens)
     if provider == "anthropic":
-        return await _call_anthropic(system, user_content, max_tokens)
+        return await _call_anthropic(system, user_content, max_tokens, schema=schema)
     raise ValueError(
         f"Unknown LLM_PROVIDER '{provider}'. Valid values: anthropic, gemini, deepseek."
     )

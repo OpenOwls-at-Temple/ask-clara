@@ -109,3 +109,92 @@ the student or the employer. Respond in JSON only."""
 #   "cover_letter": "string",
 #   "employer_brief": "string"
 # }
+
+
+# ---------------------------------------------------------------------------
+# JSON output schemas — formal versions of the structures described in the
+# system prompts above. On the Anthropic path these are enforced by the API
+# (structured outputs), so the response is guaranteed to be valid JSON in
+# exactly this shape. Gemini/DeepSeek ignore them and rely on the prompt text
+# plus the parse-and-retry fallback in agents.py. Structured outputs require
+# "required" and "additionalProperties": false on every object.
+# ---------------------------------------------------------------------------
+
+ASSESSMENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "strengths": {"type": "array", "items": {"type": "string"}},
+        "gaps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "area": {"type": "string"},
+                    "target_rank": {"type": "integer", "enum": [1, 2, 3]},
+                    "why": {"type": "string"},
+                },
+                "required": ["area", "target_rank", "why"],
+                "additionalProperties": False,
+            },
+        },
+        "recommendations": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "action": {"type": "string"},
+                    "rationale": {"type": "string"},
+                },
+                "required": ["action", "rationale"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["strengths", "gaps", "recommendations"],
+    "additionalProperties": False,
+}
+
+RESUME_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "target_rank": {"type": "integer", "enum": [1, 2, 3]},
+        "target_title": {"type": "string"},
+        "sections": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "heading": {"type": "string"},
+                    "content": {"type": "string"},
+                },
+                "required": ["heading", "content"],
+                "additionalProperties": False,
+            },
+        },
+        "notes_for_student": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["target_rank", "target_title", "sections", "notes_for_student"],
+    "additionalProperties": False,
+}
+
+DEVELOPMENT_PLAN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "horizon_months": {"type": "integer"},
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "skill": {"type": "string"},
+                    "target_rank": {"type": "integer", "enum": [1, 2, 3]},
+                    "why": {"type": "string"},
+                },
+                "required": ["skill", "target_rank", "why"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["horizon_months", "items"],
+    "additionalProperties": False,
+}

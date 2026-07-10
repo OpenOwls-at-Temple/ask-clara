@@ -49,6 +49,29 @@ async def test_assessment_agent_retries_on_malformed_json():
     assert "error" in result
 
 
+@pytest.mark.asyncio
+async def test_each_agent_passes_its_json_schema_to_the_llm():
+    """Every agent must send its output schema so the Anthropic path can enforce
+    it via structured outputs (Gemini/DeepSeek ignore it)."""
+    from app.llm import prompts
+    from app.llm.agents import (
+        run_assessment_agent,
+        run_planning_agent,
+        run_resume_agent,
+    )
+
+    fake = '{"strengths": [], "gaps": [], "recommendations": []}'
+    for agent, expected_schema in [
+        (run_assessment_agent, prompts.ASSESSMENT_SCHEMA),
+        (run_resume_agent, prompts.RESUME_SCHEMA),
+        (run_planning_agent, prompts.DEVELOPMENT_PLAN_SCHEMA),
+    ]:
+        mock = AsyncMock(return_value=fake)
+        with patch("app.llm.agents.call_llm", new=mock):
+            await agent({})
+        assert mock.call_args.kwargs["schema"] is expected_schema
+
+
 # ---------------------------------------------------------------------------
 # assessment_service unit tests (DB and Mongo mocked)
 # ---------------------------------------------------------------------------
