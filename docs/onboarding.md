@@ -34,7 +34,7 @@ are git-driven, so you do not need hosting-dashboard logins to contribute.
 | GitHub repo (`OpenOwls-at-Temple/ask-clara`) | Everyone | Org/repo invite from the project owner. Write access; all changes go through PRs |
 | Google OAuth **client ID** (public value) | Everyone (local `.env`) | Ask the project owner. `http://localhost:5173` is an authorized origin on the shared test client |
 | Google OAuth **client secret** | Everyone (backend local `.env`) | Shared privately by the project owner — never committed, never posted in chat |
-| An LLM API key for local dev | Everyone | **Use your own personal key.** Anthropic (`LLM_PROVIDER=anthropic`) or a free-tier Gemini key (`LLM_PROVIDER=gemini`) — the backend supports both. Never use the shared grant-funded key locally |
+| An LLM API key for local dev | Everyone | **Use your own personal key.** Anthropic (`LLM_PROVIDER=anthropic`) or a free-tier Gemini key (`LLM_PROVIDER=gemini`) — the backend supports both. Never use the shared grant-funded key locally. **Privacy rule:** with a non-Anthropic provider, only ever upload the synthetic fixture resume (`docs/fixtures/synthetic-resume.docx`) — free-tier Gemini may use submitted data for product improvement, so no real resumes through it (see `ai_specs/llm-integration.md` → Privacy & Safety) |
 | A `@temple.edu` Google account | Everyone | Sign-in is domain-restricted (`ALLOWED_EMAIL_DOMAIN=temple.edu`); you sign into the app with your own Temple account |
 | OAuth **test user** registration | Everyone (while the consent screen is in Testing mode) | The project owner adds your `@temple.edu` email under Test users in Google Cloud Console — see §1.2. Without it, Google blocks sign-in before Clara is ever reached |
 | Supabase staging connection string (session mode, port 5432) | Only whoever runs staging migrations | Shared privately by the project owner, per-task |
@@ -143,8 +143,10 @@ Docker containers; you only need to set:
 
 1. `http://localhost:8000/docs` loads the API docs.
 2. `http://localhost:5173` loads the sign-in page; sign in with your `@temple.edu` account.
-3. Complete intake, upload a resume, and run an assessment — this exercises Postgres,
-   MongoDB, and your LLM key end-to-end.
+3. Complete intake, upload the **synthetic fixture resume** (`docs/fixtures/synthetic-resume.docx`),
+   and run an assessment — this exercises Postgres, MongoDB, and your LLM key end-to-end.
+   Only upload a real resume (e.g. your own) if you are on your own **Anthropic** key —
+   never through Gemini or DeepSeek (see `ai_specs/llm-integration.md` → Privacy & Safety).
 
 ---
 
@@ -317,4 +319,5 @@ retry, don't panic); long LLM generations can hit the Vercel proxy timeout (see
 - [ ] Run the full test suites (§3) and confirm everything passes untouched
 - [ ] Make a trivial branch + PR (e.g. fix a typo) to walk the full workflow once
 - [ ] Read the security rules in `ai_specs/auth-security.md` — especially: never commit
-      secrets, never log PII, never send PII to the LLM
+      secrets, never log PII, never send PII to the LLM, and never send real resume data
+      through a non-Anthropic provider (synthetic fixture only — see §2)
