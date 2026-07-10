@@ -261,6 +261,7 @@ User action (frontend)
 - **Sent to LLM:** degree level, major/program, track, ranked target role titles, trimmed resume/LinkedIn *content* (skills, experience, projects), and job posting text.
 - **Never sent to LLM:** Temple email, phone number, mailing address, session tokens, passwords, or any other direct PII; first-gen/working/commuter status.
 - **Data retention:** Anthropic's API does not train on API inputs by default — verify the current policy before launch.
+- **Provider data policy (student-data protection):** Staging and production always run `LLM_PROVIDER=anthropic`. Non-Anthropic providers (Gemini, DeepSeek) are permitted for **local development only** and may only ever receive **synthetic/test data** — use the fixture resume in `docs/fixtures/`, never a real student's (or your own) resume or LinkedIn content. Rationale: free-tier Gemini's terms may allow submitted data to be used for product improvement, and DeepSeek's data-handling posture has not been reviewed against this project's FERPA-aware requirements. To test locally with real personal data, use your own Anthropic key.
 - **Content safety:** Uploaded text is user-generated; sanitize and bound it before sending, and never echo raw uploads into other students' contexts.
 
 ---

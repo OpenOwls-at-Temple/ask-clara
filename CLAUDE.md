@@ -99,6 +99,7 @@ React SPA (Vite)
 
 - Never call the LLM from the frontend — all agents run server-side in `backend/app/llm/`.
 - Never send PII (Temple email, phone, address) or self-reported first-gen/working/commuter status to the LLM. Strip contact blocks from resume text before any model call.
+- Staging and production run `LLM_PROVIDER=anthropic` only. Non-Anthropic providers (Gemini/DeepSeek) are for local dev and may only ever receive synthetic/test data (`docs/fixtures/`) — never a real resume (see `ai_specs/llm-integration.md` → Privacy & Safety).
 - Never fabricate a student's experience in generated resumes or cover letters. Ungrounded content goes in `notes_for_student`, not in document sections.
 - Clara complements the Temple Career Center — never frame it as a replacement in user-facing copy.
 - All prompts are defined only in `backend/app/llm/prompts.py` — never inline them in routes or agents.
