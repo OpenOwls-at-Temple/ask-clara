@@ -97,7 +97,7 @@ async def login(
     )
 
     access_token = create_access_token(str(user.id))
-    refresh_token = create_refresh_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id), user.token_version)
     _set_refresh_cookie(response, refresh_token)
 
     return {"access_token": access_token, "user": _user_out(user)}
@@ -114,21 +114,43 @@ async def refresh(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="No refresh token"
         )
 
-    user_id = decode_refresh_token(refresh_token)
+    user_id, token_version = decode_refresh_token(refresh_token)
     user = await db.get(User, uuid.UUID(user_id))
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
         )
+    if token_version != user.token_version:
+        # Minted before the user's last logout — revoked.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Refresh token revoked"
+        )
 
     new_access = create_access_token(str(user.id))
-    new_refresh = create_refresh_token(str(user.id))
+    new_refresh = create_refresh_token(str(user.id), user.token_version)
     _set_refresh_cookie(response, new_refresh)
 
     return {"access_token": new_access, "user": _user_out(user)}
 
 
 @router.post("/logout")
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    refresh_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
+    db: AsyncSession = Depends(get_db),
+):
+    # Server-side revocation: bump token_version so every outstanding refresh
+    # token for this user (this browser's and any stolen copy's) stops working.
+    # Authenticated by the refresh cookie itself — the access token may already
+    # have expired when the user clicks "Sign out".
+    if refresh_token:
+        try:
+            user_id, _ = decode_refresh_token(refresh_token)
+            user = await db.get(User, uuid.UUID(user_id))
+            if user is not None:
+                user.token_version += 1
+                await db.commit()
+        except HTTPException:
+            pass  # invalid/expired cookie — nothing to revoke
     response.delete_cookie(_REFRESH_COOKIE, path=_REFRESH_PATH)
     return {"ok": True}

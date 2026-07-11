@@ -15,8 +15,29 @@ def test_create_and_decode_refresh_token():
     from app.auth import create_refresh_token, decode_refresh_token
 
     user_id = "00000000-0000-0000-0000-000000000001"
-    token = create_refresh_token(user_id)
-    assert decode_refresh_token(token) == user_id
+    token = create_refresh_token(user_id, token_version=3)
+    assert decode_refresh_token(token) == (user_id, 3)
+
+
+def test_legacy_refresh_token_without_version_decodes_as_zero():
+    """Tokens minted before versioning existed carry no "tv" claim; they must
+    decode as version 0 (the column's server default) so deploys don't log
+    everyone out."""
+    from datetime import datetime, timedelta, timezone
+
+    from jose import jwt
+
+    from app.auth import decode_refresh_token
+    from app.config import settings
+
+    user_id = "00000000-0000-0000-0000-000000000001"
+    exp = datetime.now(timezone.utc) + timedelta(days=1)
+    legacy = jwt.encode(
+        {"sub": user_id, "type": "refresh", "exp": exp},
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+    assert decode_refresh_token(legacy) == (user_id, 0)
 
 
 def test_refresh_token_rejected_as_access_token():
@@ -86,3 +107,82 @@ def test_student_cannot_use_another_users_token():
     token_a = create_access_token(user_a)
     assert decode_access_token(token_a) == user_a
     assert decode_access_token(token_a) != user_b
+
+
+# ---------------------------------------------------------------------------
+# Refresh-token revocation (token versioning)
+# ---------------------------------------------------------------------------
+
+_USER_ID = "00000000-0000-0000-0000-000000000009"
+
+
+def _make_user(token_version: int):
+    from unittest.mock import MagicMock
+
+    user = MagicMock()
+    user.id = _USER_ID
+    user.temple_email = "tuk12345@temple.edu"
+    user.display_name = "Test Student"
+    user.role.value = "student"
+    user.token_version = token_version
+    return user
+
+
+@pytest.mark.asyncio
+async def test_refresh_rejected_after_revocation():
+    """A refresh token minted at version 0 must be rejected once the user's
+    token_version has been bumped (i.e. after logout)."""
+    from app.auth import create_refresh_token
+    from app.routes.auth import refresh
+    from fastapi import Response
+
+    stale_token = create_refresh_token(_USER_ID, token_version=0)
+    db = AsyncMock()
+    db.get.return_value = _make_user(token_version=1)
+
+    with pytest.raises(HTTPException) as exc_info:
+        await refresh(Response(), refresh_token=stale_token, db=db)
+    assert exc_info.value.status_code == 401
+    assert "revoked" in exc_info.value.detail.lower()
+
+
+@pytest.mark.asyncio
+async def test_refresh_accepted_when_version_matches():
+    from app.auth import create_refresh_token
+    from app.routes.auth import refresh
+    from fastapi import Response
+
+    token = create_refresh_token(_USER_ID, token_version=2)
+    db = AsyncMock()
+    db.get.return_value = _make_user(token_version=2)
+
+    result = await refresh(Response(), refresh_token=token, db=db)
+    assert "access_token" in result
+
+
+@pytest.mark.asyncio
+async def test_logout_bumps_token_version_and_clears_cookie():
+    from app.auth import create_refresh_token
+    from app.routes.auth import logout
+    from fastapi import Response
+
+    user = _make_user(token_version=0)
+    db = AsyncMock()
+    db.get.return_value = user
+    token = create_refresh_token(_USER_ID, token_version=0)
+
+    result = await logout(Response(), refresh_token=token, db=db)
+    assert result == {"ok": True}
+    assert user.token_version == 1
+    db.commit.assert_awaited()
+
+
+@pytest.mark.asyncio
+async def test_logout_without_cookie_still_succeeds():
+    from app.routes.auth import logout
+    from fastapi import Response
+
+    db = AsyncMock()
+    result = await logout(Response(), refresh_token=None, db=db)
+    assert result == {"ok": True}
+    db.commit.assert_not_awaited()

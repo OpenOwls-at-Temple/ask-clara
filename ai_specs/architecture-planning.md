@@ -79,6 +79,7 @@ clara/
 | `display_name` | String | Student name |
 | `role` | Enum | `student`, `counselor`, `admin` |
 | `llm_generation_count` | Integer (default 0) | Lifetime count of expensive LLM generations; backs the per-user hard quota (see `auth-security.md`) |
+| `token_version` | Integer (default 0) | Bumped on logout to revoke all outstanding refresh tokens (see `auth-security.md` → Session & Account Safety) |
 | `created_at` | DateTime | Record creation (UTC) |
 | `last_login_at` | DateTime | Most recent sign-in |
 
