@@ -66,7 +66,7 @@
 
 ## Testing Conventions
 
-- Every backend function has at least one unit test.
+- Every route and service **behavior** has a test; ownership/authorization paths (a student must never see or modify another student's data) are **always** tested. Trivial helpers don't need dedicated tests — cover behaviors, not function counts.
 - Tests must pass before any PR merges.
 - Test naming: `test_[module].py` (Python) / `[module].test.js` (JS).
 - Use descriptive names: `test_student_cannot_see_other_students_assessment`.
