@@ -15,8 +15,8 @@
 ## Status Summary
 
 Features 1–5 (Phase 1 MVP) are implemented and deployed to staging
-(https://ask-clara-zeta.vercel.app). Phase 2 is underway: Feature 6 (development plan) is
-shipped and browser-verified; Feature 7 (job leads scanning) is in progress.
+(https://ask-clara-zeta.vercel.app). Phase 2 is underway: Features 6 (development plan) and
+7 (job leads scanning & alerts) are shipped and browser-verified. Feature 8 is next.
 
 ---
 
@@ -49,12 +49,13 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-10 — Refresh-token revocation via `users.token_version`; migration applied to staging + local; flagged staging `DATABASE_URL` found in `backend/.env` (PR #17)
 - [x] 2026-07-10 — Spec-sync rule: spec deltas ship in the same PR as the code change; known drift never merges (PR #18)
 - [x] 2026-07-11 — Progress/ops hygiene: `progress.md` condensed to 2–3-line entries (narrative moved to `docs/progress-archive.md`), testing convention re-scoped to behavior coverage, Ops & Monitoring section added to `llm-integration.md` (`docs/progress-and-ops-hygiene`)
+- [x] 2026-07-11 — Feature 7: job leads scanning & alerts — curated Greenhouse/Lever board scan (GitHub Actions cron → secret-gated trigger), keyword pre-filter + batched job-match agent, fit-ranked `JobLeads.jsx` with in-app new-lead badges; migration `473b757cc096` on staging + local; browser-verified (PR #20)
 
 ---
 
 ## In Progress
 
-- [ ] Feature 7: job leads scanning & alerts (`feature/job-leads-scanning`)
+_(none)_
 
 ---
 
@@ -69,5 +70,7 @@ Full narrative in `docs/progress-archive.md`.
 
 ## Up Next
 
+- [ ] Feature 8: per-posting resume + cover letter + employer brief (next Phase 2 feature)
+- [ ] Before the first scheduled scan: set `SCAN_TRIGGER_SECRET` in Render and `BACKEND_URL` + `SCAN_TRIGGER_SECRET` in GitHub repository secrets (owner-managed)
 - [ ] Before pilot launch: publish the Google OAuth consent screen to production (Testing mode caps sign-ins at 100 allowlisted test users — see `docs/onboarding.md` §1.2)
 - [ ] Before pilot launch: stand up the daily ops check (spend/quota/error review — see `ai_specs/llm-integration.md` → Ops & Monitoring)
