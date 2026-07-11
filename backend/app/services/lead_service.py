@@ -33,6 +33,11 @@ MAX_CANDIDATES_PER_STUDENT = 10  # postings sent to one batched LLM call
 MAX_LEADS_PER_SCAN = 5  # new leads stored per student per scan
 MIN_FIT_SCORE = 0.55
 
+
+class AgentFailure(RuntimeError):
+    """The job-match LLM call failed for one profile (timeout, malformed output)."""
+
+
 # Module-level scan state, read by GET /api/admin/scan-jobs/status. The GitHub
 # Actions workflow polls it until the background task finishes (the polling
 # doubles as keep-alive so Render doesn't spin down mid-scan). In-memory is
@@ -112,7 +117,11 @@ def _clamp_score(value) -> float | None:
 async def scan_for_profile(
     db: AsyncSession, profile: Profile, postings: list[dict]
 ) -> int:
-    """Match postings for one student and persist new leads. Returns leads created."""
+    """Match postings for one student and persist new leads.
+
+    Returns leads created; raises AgentFailure if the LLM call fails so the
+    scan can count failures instead of silently reporting zero matches.
+    """
     role_titles = [r.title for r in profile.target_roles]
     known_urls = await _existing_lead_urls(db, profile.id)
     fresh = [p for p in postings if p["url"] not in known_urls]
@@ -131,8 +140,7 @@ async def scan_for_profile(
     context = build_job_match_context(profile_dict, candidates)
     result = await run_job_match_agent(context)
     if "error" in result:
-        logger.warning("Job-match agent failed for profile %s; skipping", profile.id)
-        return 0
+        raise AgentFailure(result["error"])
 
     matches = []
     for match in result.get("matches", []):
@@ -189,8 +197,18 @@ async def run_scan(db: AsyncSession, postings: list[dict] | None = None) -> dict
 
         leads_created = 0
         students_matched = 0
+        agent_failures = 0
         for profile in profiles:
-            created = await scan_for_profile(db, profile, postings)
+            try:
+                created = await scan_for_profile(db, profile, postings)
+            except AgentFailure as exc:
+                # One student's failed match call must not kill the whole scan,
+                # but it must be visible in the status — not read as "no fit".
+                logger.warning(
+                    "Job-match agent failed for profile %s: %s", profile.id, exc
+                )
+                agent_failures += 1
+                continue
             leads_created += created
             if created:
                 students_matched += 1
@@ -202,6 +220,7 @@ async def run_scan(db: AsyncSession, postings: list[dict] | None = None) -> dict
             profiles_scanned=len(profiles),
             students_matched=students_matched,
             leads_created=leads_created,
+            agent_failures=agent_failures,
         )
     except Exception as exc:
         logger.exception("Job scan failed")

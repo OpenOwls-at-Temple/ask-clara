@@ -255,6 +255,20 @@ async def test_run_scan_drops_low_fit_matches(db_session):
 
 
 @pytest.mark.asyncio
+async def test_run_scan_counts_agent_failures_without_dying(db_session):
+    """A failed LLM call for one student is reported as agent_failures in the
+    completed status — never silently read as 'no matches'."""
+    from app.services.lead_service import run_scan
+
+    await _seed_student(db_session)
+    with patch("app.llm.agents.call_llm", new=AsyncMock(return_value=None)):
+        status = await run_scan(db_session, postings=[_posting("Software Engineer")])
+    assert status["state"] == "completed"
+    assert status["leads_created"] == 0
+    assert status["agent_failures"] >= 1
+
+
+@pytest.mark.asyncio
 async def test_run_scan_reports_failed_state_on_error(db_session):
     from app.services import lead_service
 
