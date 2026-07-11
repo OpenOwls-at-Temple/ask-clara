@@ -1227,3 +1227,63 @@ body {
   .page-content { padding: var(--s6) var(--s4); }
   .assessment-run-card { flex-direction: column; align-items: flex-start; }
 }
+
+/* ────────────────────────────────────────────────────────────── */
+/*  JOB LEADS (Feature 7)                                         */
+/* ────────────────────────────────────────────────────────────── */
+.nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  margin-left: 6px;
+  padding: 0 4px;
+  border-radius: 99px;
+  background: var(--cherry);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.lead-card .resume-card-header {
+  align-items: flex-start;
+}
+
+.lead-fit {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: var(--success-bg);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.lead-new-chip {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.lead-reason {
+  background: var(--cherry-tint);
+  border-left: 3px solid var(--cherry);
+  border-radius: 0 6px 6px 0;
+  padding: var(--s3) var(--s4);
+  margin-bottom: var(--s4);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.lead-reason-label {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cherry);
+  margin-bottom: 4px;
+}

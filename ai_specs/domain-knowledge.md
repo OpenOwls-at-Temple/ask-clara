@@ -71,7 +71,7 @@ Clara operates in the **career development and early-career recruiting** domain,
 | Anthropic API | All LLM agents (assessment, planning, documents, matching) | Watch rate limits and per-call token cost against the grant budget |
 | Google Workspace SSO | `@temple.edu` identity | University audience; avoids password storage |
 | Temple Career Center | Counselor review and student handoff | Partnership framework defined with Dr. Gallo |
-| Job posting sources (Phase 2) | Job leads scanning | Respect ToS; store original links, never republish full postings |
+| Job posting sources (Phase 2) | Job leads scanning | Official public board APIs of Greenhouse and Lever over a curated employer list (`backend/app/services/job_sources.py`) — free, keyless, ToS-clean. Store original links, never republish full postings |
 
 ---
 

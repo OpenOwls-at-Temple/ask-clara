@@ -1,0 +1,53 @@
+# Feature 7: scheduled job-leads scan.
+#
+# Render's free tier stops the backend process after ~15 min idle, so the app
+# cannot run its own scheduler. This workflow is the scheduler: it wakes the
+# backend, triggers the scan, and polls the status endpoint until the scan
+# finishes — the polling doubles as keep-alive traffic so Render doesn't spin
+# the instance down mid-scan. (See ai_specs/architecture-planning.md.)
+#
+# Required repository secrets:
+#   BACKEND_URL          e.g. https://<service>.onrender.com  (no trailing slash)
+#   SCAN_TRIGGER_SECRET  same value as the Render env var of the same name
+
+name: Job Leads Scan
+
+on:
+  schedule:
+    - cron: "0 11 * * 1-5" # weekdays 11:00 UTC (~6-7am ET)
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scan (retries while Render cold-starts)
+        run: |
+          for attempt in 1 2 3 4 5; do
+            code=$(curl -s -o /tmp/trigger_body -w '%{http_code}' --max-time 120 -X POST \
+              -H "X-Scan-Trigger-Secret: ${{ secrets.SCAN_TRIGGER_SECRET }}" \
+              "${{ secrets.BACKEND_URL }}/api/admin/scan-jobs" || echo "000")
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" = "202" ]; then exit 0; fi
+            # 409 = a scan is already running; treat as success and just poll it
+            if [ "$code" = "409" ]; then exit 0; fi
+            if [ "$code" = "401" ] || [ "$code" = "503" ]; then
+              echo "Configuration error:"; cat /tmp/trigger_body; exit 1
+            fi
+            sleep 20
+          done
+          echo "Backend did not accept the trigger after 5 attempts"; exit 1
+
+      - name: Poll status until completion (keep-alive)
+        run: |
+          for i in $(seq 1 40); do
+            sleep 15
+            body=$(curl -s --max-time 60 \
+              -H "X-Scan-Trigger-Secret: ${{ secrets.SCAN_TRIGGER_SECRET }}" \
+              "${{ secrets.BACKEND_URL }}/api/admin/scan-jobs/status" || echo '{}')
+            state=$(echo "$body" | jq -r '.state // "unknown"')
+            echo "Poll $i: $state"
+            if [ "$state" = "completed" ]; then echo "$body" | jq .; exit 0; fi
+            if [ "$state" = "failed" ]; then echo "$body" | jq .; exit 1; fi
+          done
+          echo "Scan did not finish within 10 minutes"; exit 1
