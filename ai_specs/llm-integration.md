@@ -253,7 +253,7 @@ User action (frontend)
 |---------|----------|
 | Max input size | **Deterministic pre-truncation:** cap parsed experience to the ~3 most recent/relevant roles and enforce a hard input-string limit (start at ~1,500 tokens) *before* building the prompt. Do not pass raw multi-page documents and do not rely on the model to summarize them. Numbers are configurable, but truncation happens in code, not in the LLM. |
 | Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans (constants in `agents.py`) — keep outputs bounded. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
-| Per-call budget awareness | Orchestrator estimates tokens before each call and logs cost; agents reuse stored assessments instead of re-running |
+| Per-call budget awareness | All caps are deterministic and enforced in code (input truncation in `orchestrator.py`, output constants in `agents.py`); agents reuse stored assessments instead of re-running. There is **no** runtime token estimation or per-call cost logging — spend and usage are observed externally (see Ops & Monitoring below). |
 | What is excluded from context | Contact details (PII), unrelated past target roles, completed plan items |
 | Caching | Save generated assessments/resumes so viewing them later does not re-call the model |
 
@@ -292,6 +292,57 @@ User action (frontend)
 | JSON parse success rate | Logged in the service layer | >98% |
 | Fallback rate | Logged when a fallback is returned | <2% |
 | Cost per active student | API spend ÷ active users | Within grant budget (~$3,000 / ~500) |
+
+---
+
+## Ops & Monitoring
+
+Where the Evaluation metrics are actually observable today. There is **no metrics pipeline,
+dashboard, or alerting yet** — until one exists, the pilot runs on a **daily manual check**
+(~5 minutes) by whoever is on point:
+
+1. **Spend (actual dollars):** Anthropic Console → Usage, for the project's API key. Compare
+   against the grant budget (~$3,000 / ~500 students).
+2. **Usage & quota:** run the query below against the staging/production Postgres (Supabase).
+3. **Errors, fallbacks, parse failures:** Render dashboard → service Logs, filtered by the
+   strings below.
+
+### Daily usage query
+
+```sql
+SELECT
+  count(*) FILTER (WHERE llm_generation_count > 0)  AS students_who_generated,
+  sum(llm_generation_count)                          AS total_generations,
+  count(*) FILTER (WHERE llm_generation_count >= 20) AS students_at_cap
+FROM users;
+```
+
+`20` = `LLM_GENERATION_CAP` (defined per route in `routes/assessment.py`, `routes/plan.py`,
+`routes/documents.py`; local environments bypass it). Cost per active student =
+Anthropic Console spend ÷ `students_who_generated`.
+
+### Log strings that matter (Render → Logs → filter)
+
+| Search string | Meaning | Evaluation metric |
+|---------------|---------|-------------------|
+| `returned malformed JSON; retrying once` | First parse failure; retry in flight (`agents.py`) | JSON parse success rate |
+| `second attempt also malformed` | Both attempts failed — user got the fallback | Fallback rate |
+| `Anthropic timeout on second attempt` / `Anthropic rate limit on second attempt` | Provider trouble persisted past the retry | Fallback rate |
+| `Unexpected Anthropic error` | Unclassified provider error (full traceback logged) | Fallback rate |
+
+**Notes:**
+
+- On the Anthropic path, structured outputs (`output_config` schemas, since 2026-07-10) make
+  malformed JSON structurally impossible; the parse-failure strings should only ever appear in
+  local Gemini/DeepSeek runs. Seeing them in staging/production logs is a red flag by itself.
+- Render's free-tier log retention is limited — don't count on scrolling back weeks; check
+  daily during the pilot.
+- Latency (cached <1 s / fresh <60 s p95) is not separately instrumented; spot-check via the
+  request timestamps in the Render logs and the browser network tab during smoke tests.
+- **Known gap (accepted for now):** failures surface only as user-facing fallback messages and
+  log lines — nothing pages anyone. If the daily manual check proves insufficient at pilot
+  scale, the next step is a scheduled GitHub Actions job (same pattern as the Feature 7 scan
+  trigger) that runs the usage query and posts results to the team.
 
 ---
 
