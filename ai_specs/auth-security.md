@@ -116,7 +116,7 @@
 
 ## Session & Account Safety
 
-- Invalidate the refresh token on logout.
+- Invalidate the refresh token on logout — implemented via token versioning: each refresh JWT carries the `users.token_version` it was minted with (`tv` claim); logout increments the column, so every outstanding refresh token for that user (including stolen copies) fails the version check on `/refresh` with a 401. Clearing the cookie alone is not revocation.
 - Rate-limit expensive endpoints (uploads, LLM generation) per user.
 - Re-verify identity through SSO for sensitive account changes.
 - **Hard LLM quotas (budget protection):** time-based rate limits alone do not protect a fixed grant budget from a compromised account scripting requests. Enforce a **database-backed lifetime cap** per user via the `users.llm_generation_count` column (e.g. a configurable max such as 20 resume generations). Check and increment it **atomically** (an `UPDATE ... WHERE llm_generation_count < :cap RETURNING ...` or a row lock) so concurrent requests cannot both pass the check, and reject over-quota requests at the FastAPI layer before any model call. As defense in depth, also keep a **global/aggregate budget guard** (e.g. a daily spend ceiling) that pauses generation for everyone if total spend nears the grant limit.

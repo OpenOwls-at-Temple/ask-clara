@@ -23,10 +23,12 @@ def create_access_token(user_id: str) -> str:
     )
 
 
-def create_refresh_token(user_id: str) -> str:
+def create_refresh_token(user_id: str, token_version: int = 0) -> str:
+    """Mint a refresh token carrying the user's current token_version ("tv").
+    Bumping users.token_version on logout revokes every token minted before it."""
     exp = datetime.now(timezone.utc) + timedelta(days=_REFRESH_EXPIRE_DAYS)
     return jwt.encode(
-        {"sub": user_id, "type": "refresh", "exp": exp},
+        {"sub": user_id, "type": "refresh", "tv": token_version, "exp": exp},
         settings.jwt_secret,
         algorithm="HS256",
     )
@@ -48,8 +50,10 @@ def decode_access_token(token: str) -> str:
     return user_id
 
 
-def decode_refresh_token(token: str) -> str:
-    """Return the user_id from a valid refresh token, or raise 401."""
+def decode_refresh_token(token: str) -> tuple[str, int]:
+    """Return (user_id, token_version) from a valid refresh token, or raise 401.
+    Tokens minted before versioning existed carry no "tv" claim and decode as 0,
+    matching the column's server default — so they stay valid until first logout."""
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     except JWTError:
@@ -65,7 +69,7 @@ def decode_refresh_token(token: str) -> str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token"
         )
-    return user_id
+    return user_id, int(payload.get("tv", 0))
 
 
 async def get_current_user(

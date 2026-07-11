@@ -24,5 +24,10 @@ class User(Base):
     display_name: Mapped[str] = mapped_column(String, nullable=False)
     role: Mapped[UserRole] = mapped_column(SAEnum(UserRole), default=UserRole.student)
     llm_generation_count: Mapped[int] = mapped_column(Integer, default=0)
+    # Bumped on logout to revoke all outstanding refresh tokens (each refresh
+    # JWT carries the version it was minted with; a mismatch on /refresh = 401).
+    token_version: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
