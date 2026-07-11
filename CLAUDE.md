@@ -92,7 +92,8 @@ React SPA (Vite)
 - After completing any meaningful unit of work, update `progress.md` to reflect what was done.
 - If you encounter a conflict between these spec files, flag it to the user before proceeding.
 - If a spec file is missing a detail you need, ask the user rather than assuming.
-- Never delete or overwrite any file in `ai_specs/` without explicit instruction.
+- When a code change makes any statement in `ai_specs/` inaccurate, update the spec **in the same PR** and call out the spec delta in the PR description for reviewer approval. Never merge known spec/code drift.
+- Deleting a file in `ai_specs/`, or rewriting one wholesale, still requires explicit instruction — the same-PR rule covers targeted syncs, not restructuring.
 - Never use a library not already in `requirements.txt` or `package.json` without asking first.
 - After completing the backend and frontend implementation for any new feature, STOP and prompt the user to perform a manual browser test. Ask the user if they want you to spin up the dev servers so they can visually verify the UI and end-to-end data flow before moving on to the next feature or updating progress.md.
 

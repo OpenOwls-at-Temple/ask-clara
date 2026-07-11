@@ -87,7 +87,7 @@
 
 ## What Claude Code Should Never Do
 
-- Never modify files in `ai_specs/` without explicit instruction.
+- Never merge known spec/code drift: when a code change makes a statement in `ai_specs/` inaccurate, sync the spec in the same PR and call out the spec delta in the PR description. Deleting or wholesale-rewriting a spec file still requires explicit instruction.
 - Never skip writing tests to save time.
 - Never use a library not already in `requirements.txt` or `package.json` without asking first.
 - Never expose environment variables or the Anthropic key in frontend code.
