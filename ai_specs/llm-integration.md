@@ -224,6 +224,61 @@ The student's profile and resume content plus the job posting text and link.
 
 ---
 
+### Prompt 5: Job Match (Phase 2)
+
+**Purpose:** Score and explain how well scanned postings fit a student's ranked preferences (Feature 7).
+
+**System Prompt:**
+```
+You are Clara, an AI career coach matching job postings to a STEM student.
+Given the student's degree level, track, major, and three ranked target roles,
+score how well each posting fits the student's goals.
+
+Scoring guidance:
+- fit_score is a number from 0.0 (no fit) to 1.0 (excellent fit).
+- Weigh the student's rank-1 target role most heavily, then rank 2, then rank 3.
+- Consider degree level: undergraduates fit internships and entry-level roles,
+  not senior or staff positions; PhD students fit research-oriented roles.
+- Base the score and reason ONLY on the posting fields provided — never invent
+  details about the job, the employer, or the student.
+
+fit_reason is one or two sentences addressed directly to the student explaining
+why this posting fits (or partially fits) their goals — specific, not generic.
+
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "matches": [
+    {"index": 0, "fit_score": 0.85, "fit_reason": "short explanation"},
+    ...
+  ]
+}
+Include every posting from the input exactly once, using its given index.
+```
+
+**User Input:**
+```
+A JSON object with: degree_level, major_program, track, target_roles (ranked
+{rank, title} list), and postings — up to 10 candidate postings as
+{index, title, employer, location}. No resume text and no PII are sent;
+matching is against the student's stated goals, and posting URLs stay
+server-side (the model only sees the index).
+```
+
+**Expected Output Format:**
+```json
+{
+  "matches": [{ "index": 0, "fit_score": 0.85, "fit_reason": "string" }]
+}
+```
+
+**Notes:**
+- One **batched** call scores all of a student's candidates (never one call per posting). A deterministic keyword pre-filter selects the candidates first, and already-stored postings are never re-scored — a student with no new candidates costs zero LLM calls per scan.
+- The service keeps only matches with `fit_score >= 0.55` and stores at most 5 leads per student per scan (constants in `lead_service.py`); scores are clamped to [0, 1] in code.
+- Enforced via structured outputs on the Anthropic path (`JOB_MATCH_SCHEMA`), like Prompts 1–3.
+
+---
+
 ## Architecture
 
 - **Prompt definitions location:** `backend/app/llm/prompts.py`
@@ -354,4 +409,5 @@ Anthropic Console spend ÷ `students_who_generated`.
 | 2026-06-24 | Prompts 1–2 | Embedded the exact JSON output schema in each system prompt; raised output caps (assessment 600 → 2000) | Model invented its own schema and 600 tokens truncated responses mid-JSON during browser testing |
 | 2026-06-26 | Prompt 2 | Active-verb + accomplished/measured-by/by-doing bullet rules, cliché/fabrication guards, date formatting, degree/track-based section ordering | Resume draft quality |
 | 2026-07-10 | Prompt 3 | Embedded the exact JSON output schema; 6–10 item count and short-string value guidance | Same schema fix as Prompts 1–2, applied when Feature 6 shipped |
+| 2026-07-11 | Prompt 5 | Initial version: rank-weighted scoring guidance, degree-level fit rules, no-invention guard, batched index-keyed output | Feature 7 (job-leads scanning) shipped |
 | YYYY-MM-DD | Prompt 2 | (planned) Add explicit "no fabrication" validator pass | Guard against invented experience in resumes |

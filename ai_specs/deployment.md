@@ -109,6 +109,8 @@ GitHub Actions runs on every pull request:
 
 Merging to `main` triggers automatic deployment to staging. Production deploys are manual and require faculty (PI) approval.
 
+**Scheduled job scan (Phase 2):** `.github/workflows/scan-jobs.yml` runs weekday mornings (11:00 UTC cron, plus manual `workflow_dispatch`). It POSTs to `/api/admin/scan-jobs` with the `X-Scan-Trigger-Secret` header, then polls `/api/admin/scan-jobs/status` until the scan finishes (the polling doubles as keep-alive against Render spin-down). Requires two GitHub repository secrets: `BACKEND_URL` (the Render base URL) and `SCAN_TRIGGER_SECRET` (same value as the Render env var).
+
 ---
 
 ## Common Deployment Issues

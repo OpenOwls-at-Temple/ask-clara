@@ -96,6 +96,31 @@ Each value must be a short string, not a nested object."""
 # The backend injects "status": "pending" into each item before persisting —
 # the model never produces or sees plan status.
 
+JOB_MATCH_SYSTEM = """You are Clara, an AI career coach matching job postings to a STEM student.
+Given the student's degree level, track, major, and three ranked target roles,
+score how well each posting fits the student's goals.
+
+Scoring guidance:
+- fit_score is a number from 0.0 (no fit) to 1.0 (excellent fit).
+- Weigh the student's rank-1 target role most heavily, then rank 2, then rank 3.
+- Consider degree level: undergraduates fit internships and entry-level roles,
+  not senior or staff positions; PhD students fit research-oriented roles.
+- Base the score and reason ONLY on the posting fields provided — never invent
+  details about the job, the employer, or the student.
+
+fit_reason is one or two sentences addressed directly to the student explaining
+why this posting fits (or partially fits) their goals — specific, not generic.
+
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "matches": [
+    {"index": 0, "fit_score": 0.85, "fit_reason": "short explanation"},
+    ...
+  ]
+}
+Include every posting from the input exactly once, using its given index."""
+
 POSTING_MATERIALS_SYSTEM = """You are Clara, tailoring application materials for one specific job posting.
 Using only the student's real record, produce: (1) a resume variant tuned to
 the posting, (2) a matching cover letter, and (3) a short, factual brief on
@@ -174,6 +199,27 @@ RESUME_SCHEMA = {
         "notes_for_student": {"type": "array", "items": {"type": "string"}},
     },
     "required": ["target_rank", "target_title", "sections", "notes_for_student"],
+    "additionalProperties": False,
+}
+
+JOB_MATCH_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "matches": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "index": {"type": "integer"},
+                    "fit_score": {"type": "number"},
+                    "fit_reason": {"type": "string"},
+                },
+                "required": ["index", "fit_score", "fit_reason"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["matches"],
     "additionalProperties": False,
 }
 

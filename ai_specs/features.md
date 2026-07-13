@@ -106,10 +106,10 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** I spend my time on opportunities that fit my goals.
 
 **Acceptance Criteria:**
-- [ ] Given my profile and preferences, when the scanner runs, then it collects postings that match my target roles and surfaces them with the original job link.
-- [ ] Given matched leads, when I view them, then they are prioritized by fit to my ranked preferences.
-- [ ] Given new matches, when they appear, then I receive a notification (in-app and/or email) with the job link.
-- [ ] Given a lead, when I open it, then I see why Clara thinks it fits me.
+- [x] Given my profile and preferences, when the scanner runs, then it collects postings that match my target roles and surfaces them with the original job link.
+- [x] Given matched leads, when I view them, then they are prioritized by fit to my ranked preferences.
+- [x] Given new matches, when they appear, then I receive a notification (in-app and/or email) with the job link. *(In-app: new-lead badge on the NavBar and Dashboard; email deferred by decision 2026-07-10.)*
+- [x] Given a lead, when I open it, then I see why Clara thinks it fits me.
 
 ---
 

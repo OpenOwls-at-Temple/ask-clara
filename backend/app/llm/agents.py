@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 ASSESSMENT_MAX_OUTPUT = 2000
 RESUME_MAX_OUTPUT = 3000
 PLAN_MAX_OUTPUT = 2000
+JOB_MATCH_MAX_OUTPUT = 1500
 
 
 def _extract_json(raw: str) -> str:
@@ -109,4 +110,18 @@ async def run_planning_agent(context: dict) -> dict:
         PLAN_MAX_OUTPUT,
         "Planning",
         schema=prompts.DEVELOPMENT_PLAN_SCHEMA,
+    )
+
+
+async def run_job_match_agent(context: dict) -> dict:
+    """context keys: degree_level, major_program, track, target_roles
+    (list of {rank, title}), postings (list of {index, title, employer, location}).
+    One batched call scores all candidate postings for one student.
+    """
+    return await _call_and_parse(
+        prompts.JOB_MATCH_SYSTEM,
+        json.dumps(context),
+        JOB_MATCH_MAX_OUTPUT,
+        "JobMatch",
+        schema=prompts.JOB_MATCH_SCHEMA,
     )

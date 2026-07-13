@@ -69,6 +69,32 @@ def build_plan_context(profile: dict, assessment: dict) -> dict:
     }
 
 
+def build_job_match_context(profile: dict, postings: list[dict]) -> dict:
+    """Assemble the minimal context dict for the job-match agent.
+
+    Sends only profile basics + ranked role titles + posting metadata —
+    no PII, no resume text (matching is against stated goals, not the resume).
+    """
+    return {
+        "degree_level": profile.get("degree_level"),
+        "major_program": profile.get("major_program"),
+        "track": profile.get("track"),
+        "target_roles": [
+            {"rank": r["rank"], "title": r["title"]}
+            for r in sorted(profile.get("target_roles", []), key=lambda r: r["rank"])
+        ],
+        "postings": [
+            {
+                "index": i,
+                "title": p.get("title"),
+                "employer": p.get("employer"),
+                "location": p.get("location"),
+            }
+            for i, p in enumerate(postings)
+        ],
+    }
+
+
 def build_resume_context(
     profile: dict,
     resume_content: dict,

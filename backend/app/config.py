@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     allowed_email_domain: str = "temple.edu"
     environment: str = "local"
     frontend_origin: str = "http://localhost:5173"
+    # Phase 2: shared secret for the GitHub Actions job-scan trigger.
+    scan_trigger_secret: Optional[str] = None
 
     model_config = {"env_file": ".env"}
 
