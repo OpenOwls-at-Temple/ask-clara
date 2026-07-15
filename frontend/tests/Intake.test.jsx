@@ -36,7 +36,7 @@ function renderIntake(hookOverrides = {}) {
   return render(
     <MemoryRouter>
       <Intake />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -141,9 +141,13 @@ describe("Intake — Resume section", () => {
   });
 
   test("shows 'Resume on file' card when profile.resume_doc_id is set and no preview active", () => {
-    renderIntake({ profile: { ...savedProfile, resume_doc_id: "mongo-id-abc" } });
+    renderIntake({
+      profile: { ...savedProfile, resume_doc_id: "mongo-id-abc" },
+    });
     expect(screen.getByText("Resume on file")).toBeInTheDocument();
-    expect(screen.getByText("Select a new file below to replace it")).toBeInTheDocument();
+    expect(
+      screen.getByText("Select a new file below to replace it"),
+    ).toBeInTheDocument();
   });
 
   test("does NOT show 'Resume on file' card when profile has no resume_doc_id", () => {
@@ -176,7 +180,9 @@ describe("Intake — Resume section", () => {
     const saveResume = jest.fn().mockResolvedValue({ resume_doc_id: "new-id" });
     const { container } = renderIntake({ profile: savedProfile, saveResume });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     // The resume file input is the first file input in the Resume card
     const inputs = container.querySelectorAll("input[type='file']");
     // Resume card input comes before LinkedIn inputs
@@ -199,7 +205,9 @@ describe("Intake — Resume section", () => {
   test("creates blob URL for PDF selection and shows embed", () => {
     const { container } = renderIntake({ profile: savedProfile });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     const input = container.querySelectorAll("input[type='file']")[0];
     fireEvent.change(input, { target: { files: [file] } });
 
@@ -225,7 +233,9 @@ describe("Intake — Resume section", () => {
   test("revokes blob URL when component unmounts", () => {
     const { container, unmount } = renderIntake({ profile: savedProfile });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     const input = container.querySelectorAll("input[type='file']")[0];
     fireEvent.change(input, { target: { files: [file] } });
 

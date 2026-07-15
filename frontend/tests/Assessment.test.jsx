@@ -13,11 +13,17 @@ function renderAssessment() {
   return render(
     <MemoryRouter>
       <Assessment />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
-const baseHook = { assessments: [], loading: false, error: null, load: jest.fn(), run: jest.fn() };
+const baseHook = {
+  assessments: [],
+  loading: false,
+  error: null,
+  load: jest.fn(),
+  run: jest.fn(),
+};
 
 describe("Assessment page — gap warning icon", () => {
   test("renders yellow SVG warning icon for each gap item", () => {
@@ -28,8 +34,16 @@ describe("Assessment page — gap warning icon", () => {
           created_at: "2026-06-24T19:11:00Z",
           strengths: [],
           gaps: [
-            { area: "Data pipeline and ETL tooling", target_rank: 2, why: "No Spark experience" },
-            { area: "System design artifacts", target_rank: 1, why: "No mock interviews" },
+            {
+              area: "Data pipeline and ETL tooling",
+              target_rank: 2,
+              why: "No Spark experience",
+            },
+            {
+              area: "System design artifacts",
+              target_rank: 1,
+              why: "No mock interviews",
+            },
           ],
           recommendations: [],
         },
@@ -74,7 +88,11 @@ describe("Assessment page — gap warning icon", () => {
   });
 
   test("renders loading spinner while running", () => {
-    useAssessment.mockReturnValue({ ...baseHook, loading: true, assessments: [] });
+    useAssessment.mockReturnValue({
+      ...baseHook,
+      loading: true,
+      assessments: [],
+    });
     const { container } = renderAssessment();
     expect(container.querySelector(".spinner")).not.toBeNull();
   });

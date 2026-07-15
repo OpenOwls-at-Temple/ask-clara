@@ -13,7 +13,7 @@ function renderPlan() {
   return render(
     <MemoryRouter>
       <Plan />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -31,8 +31,18 @@ const samplePlan = {
   horizon_months: 6,
   created_at: "2026-07-10T12:00:00Z",
   items: [
-    { skill: "Build a REST API project", why: "Backend depth", target_rank: 1, status: "pending" },
-    { skill: "AWS certification", why: "Cloud gap", target_rank: 2, status: "complete" },
+    {
+      skill: "Build a REST API project",
+      why: "Backend depth",
+      target_rank: 1,
+      status: "pending",
+    },
+    {
+      skill: "AWS certification",
+      why: "Cloud gap",
+      target_rank: 2,
+      status: "complete",
+    },
   ],
 };
 
@@ -64,7 +74,9 @@ describe("Plan page", () => {
     const { container } = renderPlan();
     const done = container.querySelectorAll(".plan-item-done");
     expect(done).toHaveLength(1);
-    expect(container.querySelectorAll(".plan-item-check.checked")).toHaveLength(1);
+    expect(container.querySelectorAll(".plan-item-check.checked")).toHaveLength(
+      1,
+    );
   });
 
   test("clicking a checkbox calls toggleItem with the item index", () => {
