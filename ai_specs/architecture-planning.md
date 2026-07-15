@@ -134,7 +134,7 @@ clara/
 | `resumes` | `{ user_id, kind: "uploaded"|"generated", target_rank, raw_text, structured_json, created_at }` |
 | `linkedin` | `{ user_id, raw_text, structured_json, created_at }` |
 | `assessments` | `{ user_id, strengths[], gaps[], recommendations[], model, created_at }` |
-| `cover_letters` | `{ user_id, lead_id, body, created_at }` (Phase 2) |
+| `posting_materials` | `{ user_id, lead_id (optional), posting: {title, employer, location, url, description}, fit_summary, resume_sections[], cover_letter, employer_brief, notes_for_student[], model, created_at }` (Phase 2, Feature 8 — one document per generated materials set; `lead_id` is set when the posting came from a stored job lead, null when the student supplied it by link or manual entry) |
 
 ---
 
@@ -153,11 +153,16 @@ clara/
 | GET | `/api/assessment` | List saved assessments |
 | POST | `/api/resumes/generate` | Generate three tailored base resumes |
 | GET | `/api/resumes` | List the user's resume drafts |
+| GET | `/api/resumes/:id/download` | Download a draft — `?format=pdf` (default; Typst-rendered, auto-shrinks type from 11pt to 9pt until it fits one page) or `?format=docx`; copy-text in the UI is the fallback. Document headers carry the student's name only — never the target job title. `?format=png` returns an inline image of the same render, which the UI embeds as a clean preview (no browser PDF-viewer chrome) before download. |
 | POST | `/api/plan/generate` | (Phase 2) Generate 6-month development plan |
 | GET | `/api/leads` | (Phase 2) List matched job leads, best fit first |
 | PATCH | `/api/leads/:id` | (Phase 2) Update a lead's status (`seen` / `applied` / `dismissed`) |
 | POST | `/api/leads/mark-seen` | (Phase 2) Flip all of the user's `new` leads to `seen` (clears the in-app notification badge) |
-| POST | `/api/leads/:id/materials` | (Phase 2) Tailored resume + cover letter + employer brief |
+| POST | `/api/leads/:id/materials` | (Phase 2) Tailored resume + cover letter + employer brief for a stored lead; body may carry a pasted `description`, otherwise the backend fetches the lead's posting page (422 asks the student to paste it manually) |
+| POST | `/api/materials/fetch-posting` | (Phase 2) Resolve a pasted job-posting link into title/employer/description for the student to confirm (no LLM, no quota; SSRF-guarded) |
+| POST | `/api/materials` | (Phase 2) Tailored resume + cover letter + employer brief for a posting the student provided by link or manual entry (quota-gated) |
+| GET | `/api/materials` | (Phase 2) List the user's saved posting materials (cached — viewing never re-calls the model) |
+| GET | `/api/materials/:id/resume/download` | (Phase 2) Download the posting-tailored resume variant as a one-page Typst PDF |
 | POST | `/api/admin/scan-jobs` | (Phase 2) Trigger the job-leads scan; called by the scheduled GitHub Actions workflow, returns 202 and runs the scan as a background task |
 | GET | `/api/admin/scan-jobs/status` | (Phase 2) Scan progress/completion; polled by the workflow (doubles as keep-alive) |
 

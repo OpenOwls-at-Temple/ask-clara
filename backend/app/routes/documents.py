@@ -1,4 +1,5 @@
 import io
+import logging
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -17,6 +18,9 @@ from app.documents.resumes import (
 from app.models.user import User
 from app.schemas.resume import ResumeEditRequest, ResumeOut
 from app.services import assessment_service
+from app.services.resume_pdf import render_resume_pdf, render_resume_png
+
+logger = logging.getLogger(__name__)
 
 LLM_GENERATION_CAP = 20
 
@@ -100,9 +104,19 @@ async def update_resume(
 @router.get("/resumes/{resume_id}/download")
 async def download_resume(
     resume_id: str,
+    format: str = "pdf",
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
+    """Download a generated resume as a one-page Typst PDF (default) or DOCX.
+    `format=png` returns an inline image of the same render, used by the UI
+    as a chrome-free preview."""
+    if format not in ("pdf", "docx", "png"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="format must be 'pdf', 'docx', or 'png'.",
+        )
+
     mongo = get_mongo_db()
     try:
         doc = await mongo["resumes"].find_one({"_id": ObjectId(resume_id)})
@@ -116,25 +130,60 @@ async def download_resume(
             status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found."
         )
 
-    stream = await run_in_threadpool(_build_docx, doc)
-
     slug = (doc.get("target_title") or "resume").lower().replace(" ", "-")
-    filename = f"clara-resume-{slug}.docx"
+
+    if format in ("pdf", "png"):
+        renderer = render_resume_pdf if format == "pdf" else render_resume_png
+        try:
+            rendered = await run_in_threadpool(
+                renderer,
+                user.display_name or "Resume",
+                doc.get("sections", []),
+                doc.get("edited_text"),
+            )
+        except Exception:
+            logger.exception("Typst resume rendering failed")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "PDF generation failed — download the DOCX or copy the "
+                    "text instead."
+                ),
+            )
+        if format == "png":
+            return StreamingResponse(
+                io.BytesIO(rendered),
+                media_type="image/png",
+                headers={"Content-Disposition": "inline"},
+            )
+        return StreamingResponse(
+            io.BytesIO(rendered),
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": (
+                    f'attachment; filename="clara-resume-{slug}.pdf"'
+                )
+            },
+        )
+
+    stream = await run_in_threadpool(_build_docx, doc, user.display_name or "Resume")
     return StreamingResponse(
         stream,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={
+            "Content-Disposition": f'attachment; filename="clara-resume-{slug}.docx"'
+        },
     )
 
 
-def _build_docx(doc: dict) -> io.BytesIO:
+def _build_docx(doc: dict, student_name: str) -> io.BytesIO:
     from docx import Document
     from docx.shared import Pt
 
     document = Document()
 
-    target_title = doc.get("target_title") or "Resume"
-    document.add_heading(target_title, level=0)
+    # Heading is the student's name — never the target job title.
+    document.add_heading(student_name, level=0)
 
     edited_text = doc.get("edited_text")
     if edited_text:

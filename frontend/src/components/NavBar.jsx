@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: "/resumes", label: "Resumes" },
   { to: "/plan", label: "Plan" },
   { to: "/leads", label: "Leads" },
+  { to: "/materials", label: "Materials" },
 ];
 
 export default function NavBar() {

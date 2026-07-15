@@ -110,6 +110,18 @@ export default function Dashboard() {
       onAction: () => navigate("/leads"),
       locked: !profileComplete,
     },
+    {
+      key: "materials",
+      icon: "✉️",
+      iconClass: profileComplete ? "icon-cherry" : "",
+      title: "Application Materials",
+      desc: "A tailored resume, cover letter, and employer brief for any specific job posting.",
+      status: !profileComplete ? "locked" : "active",
+      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      action: "Tailor to a Posting",
+      onAction: () => navigate("/materials"),
+      locked: !profileComplete,
+    },
   ];
 
   const badgeClass = {

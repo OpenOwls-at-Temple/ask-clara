@@ -7,6 +7,9 @@ import re
 # Hard cap on resume/LinkedIn text sent per call (~1500 tokens ≈ 6000 chars)
 MAX_INPUT_CHARS = 6000
 MAX_EXPERIENCE_BLOCKS = 3
+# Job posting descriptions are third-party text — cap them separately so a
+# long posting can't blow the per-call input budget.
+MAX_POSTING_CHARS = 5000
 
 
 def strip_contact_block(text: str) -> str:
@@ -93,6 +96,40 @@ def build_job_match_context(profile: dict, postings: list[dict]) -> dict:
             }
             for i, p in enumerate(postings)
         ],
+    }
+
+
+def build_posting_materials_context(
+    profile: dict,
+    resume_content: dict,
+    linkedin_content: dict | None,
+    posting: dict,
+) -> dict:
+    """Assemble context for one posting-materials call (Feature 8).
+
+    Sends the trimmed resume/LinkedIn content, ranked target roles (so the
+    fit evaluation is against the student's stated goals), and the bounded
+    posting text. No PII: resume_content is already contact-stripped by the
+    caller and the profile dict carries no email/phone/first-gen status.
+    """
+    return {
+        "profile": {
+            "degree_level": profile.get("degree_level"),
+            "major_program": profile.get("major_program"),
+            "track": profile.get("track"),
+        },
+        "target_roles": [
+            {"rank": r["rank"], "title": r["title"]}
+            for r in sorted(profile.get("target_roles", []), key=lambda r: r["rank"])
+        ],
+        "resume_content": resume_content,
+        "linkedin_content": linkedin_content,
+        "posting": {
+            "title": posting.get("title"),
+            "employer": posting.get("employer"),
+            "location": posting.get("location"),
+            "description": (posting.get("description") or "")[:MAX_POSTING_CHARS],
+        },
     }
 
 

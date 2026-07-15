@@ -13,6 +13,4 @@ export const updateLeadStatus = (leadId, status) =>
 export const markLeadsSeen = () =>
   request("/leads/mark-seen", { method: "POST" });
 
-// Phase 2, Feature 8 — not active yet
-export const generateLeadMaterials = (leadId) =>
-  request(`/leads/${leadId}/materials`, { method: "POST" });
+// Feature 8 lives in services/materials.js (generateLeadMaterials et al.).

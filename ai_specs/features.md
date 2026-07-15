@@ -40,7 +40,7 @@ Each feature includes a short description and a set of acceptance criteria writt
 
 **Acceptance Criteria:**
 - [x] Given I am on the intake page, when I upload a PDF or DOCX resume, then its text is parsed and stored and I see a confirmation.
-- [x] Given I provide a LinkedIn profile (URL or exported PDF), when I submit it, then the relevant content is captured and stored with my profile.
+- [x] Given I provide a LinkedIn profile (URL, exported PDF, or a CSV from LinkedIn's data export), when I submit it, then the relevant content is captured and stored with my profile. *(CSV accepted 2026-07-14 — LinkedIn's "Get a copy of your data" download is a ZIP of CSVs, not a PDF.)*
 - [x] Given the questionnaire, when I answer it, then I can record my major/program, degree level (undergrad / grad / PhD), intended track (industry / academia / government / undecided), and graduation timeline.
 - [x] Given the "dream job" question, when I respond, then I can enter **three** target roles **ranked** by preference (1–3).
 - [x] Given I leave and return, when I reopen intake, then my previous answers are pre-filled and editable.

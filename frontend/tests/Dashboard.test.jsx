@@ -66,7 +66,7 @@ describe("Dashboard page", () => {
     useProfile.mockReturnValue({ profile: null, loading: false });
     await renderDashboard();
 
-    expect(screen.getAllByText("Profile required")).toHaveLength(4);
+    expect(screen.getAllByText("Profile required")).toHaveLength(5);
     expect(screen.getByText("Incomplete")).toBeInTheDocument();
     // Locked cards render disabled buttons.
     expect(screen.getByText("View / Run")).toBeDisabled();
@@ -110,7 +110,7 @@ describe("Dashboard page", () => {
     await renderDashboard();
 
     expect(screen.getByText("Complete")).toBeInTheDocument();
-    expect(screen.getAllByText("Ready")).toHaveLength(3);
+    expect(screen.getAllByText("Ready")).toHaveLength(4);
     expect(screen.queryByText("Profile required")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("View / Run"));

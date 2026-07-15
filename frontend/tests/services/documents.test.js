@@ -66,9 +66,9 @@ describe("documents service", () => {
         blob: async () => fakeBlob,
       });
 
-      await downloadResume("r1", "clara-resume-software-engineer.docx");
+      await downloadResume("r1", "clara-resume-software-engineer.docx", "docx");
 
-      expect(fetch.mock.calls[0][0]).toBe("/api/resumes/r1/download");
+      expect(fetch.mock.calls[0][0]).toBe("/api/resumes/r1/download?format=docx");
       expect(URL.createObjectURL).toHaveBeenCalledWith(fakeBlob);
       expect(clickedAnchor).not.toBeNull();
       expect(clickedAnchor.download).toBe(

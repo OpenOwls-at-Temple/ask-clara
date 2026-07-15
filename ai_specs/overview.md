@@ -61,6 +61,7 @@ Temple's Career Center offers excellent free services, yet many students under-u
 | Document DB | MongoDB | Parsed resumes, LinkedIn extracts, generated resumes & cover letters, assessment transcripts — document-shaped data |
 | AI / LLM | Anthropic Claude (`claude-sonnet-4-6`) via the Anthropic API | Multi-agent design: assessment, planning, document generation, job matching |
 | File parsing | `pypdf` / `python-docx` | Extract text from uploaded resume files |
+| PDF rendering | `typst` (Python bindings) | Render generated resumes to one-page PDFs server-side |
 | Hosting | Vercel (frontend), Render (backend), Supabase (Postgres), MongoDB Atlas (documents) | Free / low-cost tiers for the pilot |
 
 ---

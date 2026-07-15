@@ -235,6 +235,89 @@ async def test_linkedin_export_upload_stores_parsed_text(client, db_session):
     assert "preview" in response.json()
 
 
+def test_parse_csv_export_flattens_rows_to_readable_text():
+    """LinkedIn's data export is CSV — rows become 'Header: value' blocks."""
+    from app.routes.profile import _parse_csv_export
+
+    csv_bytes = (
+        b"Company Name,Title,Started On,Finished On,Description\n"
+        b"Acme,Software Intern,Jun 2024,Aug 2024,Built APIs in Python\n"
+        b'OtherCo,"Data Analyst",Jan 2025,,"Analyzed data, wrote SQL"\n'
+    )
+    text = _parse_csv_export(csv_bytes)
+    assert "Company Name: Acme" in text
+    assert "Title: Software Intern" in text
+    assert "Description: Analyzed data, wrote SQL" in text
+    # Empty cells (Finished On for OtherCo) are omitted, not "Finished On:"
+    assert "Finished On: \n" not in text
+
+
+@pytest.mark.asyncio
+async def test_linkedin_export_upload_accepts_csv(client, db_session):
+    """The LinkedIn data export produces CSVs — they must parse and store."""
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from datetime import datetime
+    import uuid
+    from unittest.mock import AsyncMock, patch
+
+    user_id = uuid.uuid4()
+    db_session.add(
+        User(
+            id=user_id,
+            temple_email="csvexport@temple.edu",
+            display_name="CSV Export",
+            role=UserRole.student,
+            created_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    csv_bytes = b"Company Name,Title\nAcme,Software Intern\n"
+    with patch(
+        "app.routes.profile.profile_service.upsert_linkedin_with_consistency", return_value="64a2b3c4d5e6f7890a1b2c3d"
+    ) as mock_upsert:
+        response = await client.post(
+            "/api/profile/linkedin/upload",
+            files={"file": ("Positions.csv", csv_bytes, "text/csv")},
+            headers=headers,
+        )
+
+    assert response.status_code == 200
+    assert "Company Name: Acme" in mock_upsert.call_args.kwargs["raw_text"]
+    assert "Title: Software Intern" in mock_upsert.call_args.kwargs["raw_text"]
+
+
+@pytest.mark.asyncio
+async def test_resume_upload_still_rejects_csv(client, db_session):
+    """CSV is a LinkedIn-export format only — the resume endpoint stays PDF/DOCX."""
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from datetime import datetime
+    import uuid
+
+    user_id = uuid.uuid4()
+    db_session.add(
+        User(
+            id=user_id,
+            temple_email="csvresume@temple.edu",
+            display_name="CSV Resume",
+            role=UserRole.student,
+            created_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    response = await client.post(
+        "/api/profile/resume",
+        files={"file": ("resume.csv", b"a,b\n1,2\n", "text/csv")},
+        headers=headers,
+    )
+    assert response.status_code == 400
+
+
 def _fake_mongo(inserted_id="507f1f77bcf86cd799439011"):
     from unittest.mock import AsyncMock, MagicMock
 

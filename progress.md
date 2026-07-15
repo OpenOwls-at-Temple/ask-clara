@@ -58,7 +58,9 @@ Full narrative in `docs/progress-archive.md`.
 
 ## In Progress
 
-_(none)_
+- [ ] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — backend routes, mongo collection, posting-materials agent, UI. Awaiting browser verification.
+- [ ] 2026-07-14 — Intake fixes from user testing: LinkedIn CSV upload, UI completion banner. Awaiting browser verification.
+- [ ] 2026-07-15 — Typst resume PDFs: PDF rendering via typst, PNG image previews inline, UI updates. Awaiting browser verification.
 
 ---
 

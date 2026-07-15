@@ -30,7 +30,9 @@ export default function SignIn() {
             await login(credential);
             navigate("/dashboard", { replace: true });
           } catch {
-            alert("Sign-in failed. Make sure you're using your Temple University email.");
+            alert(
+              "Sign-in failed. Make sure you're using your Temple University email.",
+            );
           }
         },
       });
@@ -65,14 +67,14 @@ export default function SignIn() {
           </div>
 
           <h1 className="signin-headline">
-            Your career.<br />
+            Your career.
+            <br />
             <em>Coached by AI.</em>
           </h1>
 
           <p className="signin-tagline">
-            Clara uses your resume and goals to give you personalized
-            career coaching — assessments, tailored resumes, and
-            concrete next steps.
+            Clara uses your resume and goals to give you personalized career
+            coaching — assessments, tailored resumes, and concrete next steps.
           </p>
 
           <div className="signin-features">
@@ -91,8 +93,8 @@ export default function SignIn() {
         </div>
 
         <div className="signin-footer">
-          Developed in partnership with Temple University Career Center.
-          Clara complements, not replaces, your career counselor.
+          Developed in partnership with Temple University Career Center. Clara
+          complements, not replaces, your career counselor.
         </div>
       </div>
 
@@ -102,8 +104,8 @@ export default function SignIn() {
           <p className="signin-panel-eyebrow">Temple University</p>
           <h2 className="signin-panel-title">Welcome back</h2>
           <p className="signin-panel-sub">
-            Sign in with your Temple University Google account to
-            access your coaching dashboard.
+            Sign in with your Temple University Google account to access your
+            coaching dashboard.
           </p>
 
           <div className="signin-google-wrap">
@@ -111,12 +113,14 @@ export default function SignIn() {
           </div>
 
           <div className="signin-divider">
-            <span className="signin-divider-text">temple.edu accounts only</span>
+            <span className="signin-divider-text">
+              temple.edu accounts only
+            </span>
           </div>
 
           <p className="signin-note">
-            By signing in you agree to Clara's terms of service.
-            Your data is used only to personalize your coaching experience.
+            By signing in you agree to Clara's terms of service. Your data is
+            used only to personalize your coaching experience.
           </p>
         </div>
       </div>
