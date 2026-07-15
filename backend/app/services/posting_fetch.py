@@ -222,27 +222,27 @@ async def fetch_posting(url: str) -> dict:
                 parsed = urlparse(url)
                 if parsed.scheme not in ("http", "https") or not parsed.hostname:
                     raise PostingFetchError("Please provide a valid http(s) link.")
-                
+
                 try:
                     loop = asyncio.get_running_loop()
                     infos = await loop.getaddrinfo(parsed.hostname, None)
                 except OSError:
                     raise PostingFetchError("That link's host could not be found.")
-                
+
                 ip = None
                 for info in infos:
                     address = ipaddress.ip_address(info[4][0])
                     if address.is_global:
                         ip = info[4][0]
                         break
-                
+
                 if not ip:
                     raise PostingFetchError("That link points to a non-public address.")
-                
+
                 # Fetch the URL directly so that SNI (Server Name Indication) works.
                 # The pre-fetch DNS check above prevents basic SSRF to local/private IPs.
                 response = await client.get(url)
-                
+
                 if not response.is_redirect:
                     break
                 location = response.headers.get("location")
