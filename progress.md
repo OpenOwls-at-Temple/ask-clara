@@ -50,6 +50,7 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-10 — Spec-sync rule: spec deltas ship in the same PR as the code change; known drift never merges (PR #18)
 - [x] 2026-07-11 — Progress/ops hygiene: `progress.md` condensed to 2–3-line entries (narrative moved to `docs/progress-archive.md`), testing convention re-scoped to behavior coverage, Ops & Monitoring section added to `llm-integration.md` (`docs/progress-and-ops-hygiene`)
 - [x] 2026-07-11 — Feature 7: job leads scanning & alerts — curated Greenhouse/Lever board scan (GitHub Actions cron → secret-gated trigger), keyword pre-filter + batched job-match agent, fit-ranked `JobLeads.jsx` with in-app new-lead badges; migration `473b757cc096` on staging + local; browser-verified (PR #20)
+- [x] 2026-07-15 — Architecture-review fixes: PDF/DOCX parsing moved to `document_parser_service`, cross-DB write consistency centralized in `profile_service.upsert_{resume,linkedin}_with_consistency`, PII address regex hardened for multi-word street names; new tests for orchestrator PII stripping, LLM retry/fallback, parser, and Mongo compensation (`refactor/architecture-review-fixes`)
 
 ---
 
