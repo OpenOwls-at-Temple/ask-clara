@@ -1,20 +1,18 @@
-import io
-import logging
-
-from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
 from app.database import get_db, get_mongo_db
-from app.documents.linkedin import insert_linkedin
-from app.documents.resumes import insert_resume
-from app.models.profile import Profile, TargetRole
+from app.models.profile import Profile
 from app.models.user import User
 from app.schemas.profile import ProfileIn, ProfileOut, TargetRoleOut
 from app.services import profile_service
+from app.services.document_parser_service import (
+    UnsupportedFileTypeError,
+    parse_document,
+)
 
 router = APIRouter()
 
@@ -49,21 +47,23 @@ def _profile_out(profile: Profile) -> ProfileOut:
     )
 
 
-def _parse_resume(content: bytes, content_type: str, filename: str) -> str:
-    ext = (filename or "").rsplit(".", 1)[-1].lower()
-    if content_type == "application/pdf" or ext == "pdf":
-        from pypdf import PdfReader
-
-        reader = PdfReader(io.BytesIO(content))
-        return "\n".join(page.extract_text() or "" for page in reader.pages)
-    if ext == "docx" or "wordprocessingml" in content_type:
-        from docx import Document
-
-        doc = Document(io.BytesIO(content))
-        return "\n".join(p.text for p in doc.paragraphs)
-    raise HTTPException(
-        status_code=400, detail="Unsupported file type. Upload a PDF or DOCX."
-    )
+async def _read_and_parse_upload(file: UploadFile) -> str:
+    """Validate an uploaded file and extract its text off the event loop."""
+    content = await file.read()
+    if len(content) > _MAX_FILE_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds 5 MB limit")
+    if file.content_type not in _ALLOWED_MIME and not (file.filename or "").endswith(
+        (".pdf", ".docx")
+    ):
+        raise HTTPException(
+            status_code=400, detail="Only PDF and DOCX files are accepted"
+        )
+    try:
+        return await run_in_threadpool(
+            parse_document, content, file.content_type or "", file.filename or ""
+        )
+    except UnsupportedFileTypeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 def _parse_csv_export(content: bytes) -> str:
@@ -74,6 +74,7 @@ def _parse_csv_export(content: bytes) -> str:
     reads like profile content rather than a raw table.
     """
     import csv
+    import io
 
     text = content.decode("utf-8-sig", errors="replace")
     rows = list(csv.reader(io.StringIO(text)))
@@ -126,51 +127,10 @@ async def upload_resume(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    content = await file.read()
-    if len(content) > _MAX_FILE_BYTES:
-        raise HTTPException(status_code=400, detail="File exceeds 5 MB limit")
-    if file.content_type not in _ALLOWED_MIME and not (file.filename or "").endswith(
-        (".pdf", ".docx")
-    ):
-        raise HTTPException(
-            status_code=400, detail="Only PDF and DOCX files are accepted"
-        )
-
-    raw_text = await run_in_threadpool(
-        _parse_resume, content, file.content_type or "", file.filename or ""
+    raw_text = await _read_and_parse_upload(file)
+    doc_id = await profile_service.upsert_resume_with_consistency(
+        db, get_mongo_db(), user.id, raw_text=raw_text
     )
-
-    mongo = get_mongo_db()
-
-    # Get current profile to check if there is an old resume to clean up
-    profile = await profile_service.get_profile(db, user.id)
-    old_doc_id = profile.resume_doc_id if profile else None
-
-    doc_id = await insert_resume(
-        mongo,
-        {
-            "user_id": str(user.id),
-            "kind": "uploaded",
-            "raw_text": raw_text,
-            "structured_json": {},
-        },
-    )
-
-    # Write MongoDB document first; compensate if Postgres update fails.
-    try:
-        await profile_service.set_resume_doc_id(db, user.id, doc_id)
-    except Exception:
-        await mongo["resumes"].delete_one({"_id": ObjectId(doc_id)})
-        raise
-
-    if old_doc_id:
-        try:
-            await mongo["resumes"].delete_one({"_id": ObjectId(old_doc_id)})
-        except Exception:
-            logging.getLogger(__name__).warning(
-                f"Failed to delete old resume document {old_doc_id} from MongoDB"
-            )
-
     return {"resume_doc_id": doc_id, "preview": raw_text[:300]}
 
 
@@ -184,36 +144,15 @@ async def submit_linkedin(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    mongo = get_mongo_db()
-
-    profile = await profile_service.get_profile(db, user.id)
-    old_doc_id = profile.linkedin_doc_id if profile else None
-
     # Store the URL as a reference only; raw_text stays empty so the LLM
     # does not receive a bare URL string as "linkedin_summary".
-    doc_id = await insert_linkedin(
-        mongo,
-        {
-            "user_id": str(user.id),
-            "raw_text": "",
-            "structured_json": {"url": body.url},
-        },
+    doc_id = await profile_service.upsert_linkedin_with_consistency(
+        db,
+        get_mongo_db(),
+        user.id,
+        raw_text="",
+        structured_json={"url": body.url},
     )
-
-    try:
-        await profile_service.set_linkedin_doc_id(db, user.id, doc_id)
-    except Exception:
-        await mongo["linkedin"].delete_one({"_id": ObjectId(doc_id)})
-        raise
-
-    if old_doc_id:
-        try:
-            await mongo["linkedin"].delete_one({"_id": ObjectId(old_doc_id)})
-        except Exception:
-            logging.getLogger(__name__).warning(
-                f"Failed to delete old LinkedIn document {old_doc_id} from MongoDB"
-            )
-
     return {"linkedin_doc_id": doc_id}
 
 
@@ -236,33 +175,7 @@ async def upload_linkedin_export(
     raw_text = await run_in_threadpool(
         _parse_linkedin_export, content, file.content_type or "", file.filename or ""
     )
-
-    mongo = get_mongo_db()
-
-    profile = await profile_service.get_profile(db, user.id)
-    old_doc_id = profile.linkedin_doc_id if profile else None
-
-    doc_id = await insert_linkedin(
-        mongo,
-        {
-            "user_id": str(user.id),
-            "raw_text": raw_text,
-            "structured_json": {},
-        },
+    doc_id = await profile_service.upsert_linkedin_with_consistency(
+        db, get_mongo_db(), user.id, raw_text=raw_text
     )
-
-    try:
-        await profile_service.set_linkedin_doc_id(db, user.id, doc_id)
-    except Exception:
-        await mongo["linkedin"].delete_one({"_id": ObjectId(doc_id)})
-        raise
-
-    if old_doc_id:
-        try:
-            await mongo["linkedin"].delete_one({"_id": ObjectId(old_doc_id)})
-        except Exception:
-            logging.getLogger(__name__).warning(
-                f"Failed to delete old LinkedIn document {old_doc_id} from MongoDB"
-            )
-
     return {"linkedin_doc_id": doc_id, "preview": raw_text[:300]}

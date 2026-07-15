@@ -50,33 +50,17 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-10 — Spec-sync rule: spec deltas ship in the same PR as the code change; known drift never merges (PR #18)
 - [x] 2026-07-11 — Progress/ops hygiene: `progress.md` condensed to 2–3-line entries (narrative moved to `docs/progress-archive.md`), testing convention re-scoped to behavior coverage, Ops & Monitoring section added to `llm-integration.md` (`docs/progress-and-ops-hygiene`)
 - [x] 2026-07-11 — Feature 7: job leads scanning & alerts — curated Greenhouse/Lever board scan (GitHub Actions cron → secret-gated trigger), keyword pre-filter + batched job-match agent, fit-ranked `JobLeads.jsx` with in-app new-lead badges; migration `473b757cc096` on staging + local; browser-verified (PR #20)
+- [x] 2026-07-15 — Architecture-review fixes: PDF/DOCX parsing moved to `document_parser_service`, cross-DB write consistency centralized in `profile_service.upsert_{resume,linkedin}_with_consistency`, PII address regex hardened for multi-word street names; new tests for orchestrator PII stripping, LLM retry/fallback, parser, and Mongo compensation (PR #21)
+- [x] 2026-07-15 — Frontend data-layer test coverage: Jest `import.meta.env` transform (babel-plugin-transform-vite-meta-env, test-env only), 86 new tests across all 6 API services, all 6 hooks, and SignIn/Dashboard/Resumes pages (`test/frontend-unit-tests`)
+- [x] 2026-07-15 — Playwright E2E critical path: sign-in → intake → resume upload → assessment → resume generation against `LLM_PROVIDER=mock` (no-network canned provider, local-only guard) + triple-gated `POST /auth/test-login`; new `e2e` CI job with trace artifacts; specs synced (auth-security, llm-integration, CLAUDE.md) (`feature/e2e-critical-path`)
 
 ---
 
 ## In Progress
 
-- [ ] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — posting-materials
-  agent (fit summary + tailored docs, structured outputs), posting fetch from a pasted link
-  (JSON-LD extraction, SSRF-guarded) with manual-entry fallback, `posting_materials` Mongo
-  collection, quota-gated `/api/materials*` + `/api/leads/:id/materials` routes, `Materials.jsx`
-  page + "Tailor materials" on leads. Backend + frontend tests pass; **awaiting manual browser
-  verification before ticking the Feature 8 ACs.**
-- [ ] 2026-07-14 — Intake fixes from user testing: LinkedIn upload now accepts the CSVs that
-  LinkedIn's data export actually produces (instructions corrected to point at profile →
-  More → Save to PDF as the easy path); intake page gained a step-1 completion banner with a
-  "Continue to AI Assessment" button and tells students what's still missing (LinkedIn marked
-  optional). Feature 2 AC wording synced in `features.md`. Awaiting browser verification.
-- [ ] 2026-07-15 — Typst resume PDFs (adapted from the PI's career-ops template): new
-  `resume_pdf.py` renders generated resumes to one-page PDFs (auto-shrinks 11pt → 9pt to fit);
-  `GET /api/resumes/:id/download` now defaults to PDF (`?format=docx` kept), new
-  `GET /api/materials/:id/resume/download` for posting-tailored variants; "Download PDF" is the
-  primary UI action with copy-text/DOCX as fallback. New dep: `typst` (pip). Follow-up
-  2026-07-15: resume PDFs/DOCX never include the target job title (student name only in the
-  header); the resume preview is embedded inline below "Tailored resume" (Materials) / behind a
-  View PDF toggle (Resumes) as a Typst-rendered PNG image (`?format=png`) — no browser
-  PDF-viewer chrome — with a Download resume button that fetches the real PDF; "Copy resume"
-  opens a scrollable text popup (rendered via portal so it centers on the viewport). Awaiting
-  browser verification.
+- [ ] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — backend routes, mongo collection, posting-materials agent, UI. Awaiting browser verification.
+- [ ] 2026-07-14 — Intake fixes from user testing: LinkedIn CSV upload, UI completion banner. Awaiting browser verification.
+- [ ] 2026-07-15 — Typst resume PDFs: PDF rendering via typst, PNG image previews inline, UI updates. Awaiting browser verification.
 
 ---
 

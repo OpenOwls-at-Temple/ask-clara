@@ -27,7 +27,7 @@ Each agent solves something a fixed algorithm cannot: it reasons over unstructur
 
 | Setting | Value |
 |---------|-------|
-| Active provider | Controlled by `LLM_PROVIDER` env var: `anthropic` (default) \| `gemini` \| `deepseek` |
+| Active provider | Controlled by `LLM_PROVIDER` env var: `anthropic` (default) \| `gemini` \| `deepseek` \| `mock` (local/CI E2E only) |
 | Default model | `claude-sonnet-4-6` (Anthropic), `gemini-2.5-flash` (Gemini), `deepseek-chat` (DeepSeek) |
 | Why this design | Single env var swap in Render changes the provider for all agents — no code deploy needed |
 | Called from | Backend service layer only (`backend/app/llm/service.py`) — never from the frontend |
@@ -37,6 +37,7 @@ Each agent solves something a fixed algorithm cannot: it reasons over unstructur
 - **Anthropic `claude-sonnet-4-6`** — highest output quality; recommended for production pilot
 - **Google `gemini-2.5-flash`** — free tier available; good for local dev and low-cost staging
 - **DeepSeek `deepseek-chat`** — cheapest per token; OpenAI-compatible API; good cost/quality tradeoff for resume drafting
+- **`mock`** — deterministic no-network provider (`backend/app/llm/mock_provider.py`) returning canned schema-valid JSON; used by the Playwright E2E suite and CI. Hard-fails unless `ENVIRONMENT=local`.
 
 > To add a new provider: implement `_call_<provider>()` in `service.py`, add a branch in `call_llm()`, add the API key and model env vars to `config.py` and `.env.example`.
 
@@ -352,7 +353,7 @@ User action (frontend)
 - **Sent to LLM:** degree level, major/program, track, ranked target role titles, trimmed resume/LinkedIn *content* (skills, experience, projects), and job posting text.
 - **Never sent to LLM:** Temple email, phone number, mailing address, session tokens, passwords, or any other direct PII; first-gen/working/commuter status.
 - **Data retention:** Anthropic's API does not train on API inputs by default — verify the current policy before launch.
-- **Provider data policy (student-data protection):** Staging and production always run `LLM_PROVIDER=anthropic`. Non-Anthropic providers (Gemini, DeepSeek) are permitted for **local development only** and may only ever receive **synthetic/test data** — use the fixture resume in `docs/fixtures/`, never a real student's (or your own) resume or LinkedIn content. Rationale: free-tier Gemini's terms may allow submitted data to be used for product improvement, and DeepSeek's data-handling posture has not been reviewed against this project's FERPA-aware requirements. To test locally with real personal data, use your own Anthropic key.
+- **Provider data policy (student-data protection):** Staging and production always run `LLM_PROVIDER=anthropic`. Non-Anthropic providers (Gemini, DeepSeek) are permitted for **local development only** and may only ever receive **synthetic/test data** — use the fixture resume in `docs/fixtures/`, never a real student's (or your own) resume or LinkedIn content. Rationale: free-tier Gemini's terms may allow submitted data to be used for product improvement, and DeepSeek's data-handling posture has not been reviewed against this project's FERPA-aware requirements. To test locally with real personal data, use your own Anthropic key. The `mock` provider makes no network calls at all — no data leaves the process — and refuses to run outside `ENVIRONMENT=local`.
 - **Content safety:** Uploaded text is user-generated; sanitize and bound it before sending, and never echo raw uploads into other students' contexts.
 
 ---

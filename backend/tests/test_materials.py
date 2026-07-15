@@ -66,14 +66,14 @@ def test_extract_posting_rejects_pages_without_a_readable_posting():
 
 @pytest.mark.asyncio
 async def test_fetch_posting_rejects_non_http_and_private_urls():
-    from app.services.posting_fetch import PostingFetchError, _validate_url
+    from app.services.posting_fetch import PostingFetchError, fetch_posting
 
-    with pytest.raises(PostingFetchError):
-        await _validate_url("file:///etc/passwd")
-    with pytest.raises(PostingFetchError):
-        await _validate_url("http://localhost:8000/admin")
-    with pytest.raises(PostingFetchError):
-        await _validate_url("http://169.254.169.254/latest/meta-data")
+    with pytest.raises(PostingFetchError, match="valid http"):
+        await fetch_posting("file:///etc/passwd")
+    with pytest.raises(PostingFetchError, match="non-public address"):
+        await fetch_posting("http://localhost:8000/admin")
+    with pytest.raises(PostingFetchError, match="non-public address"):
+        await fetch_posting("http://169.254.169.254/latest/meta-data")
 
 
 # ---------------------------------------------------------------------------

@@ -17,7 +17,8 @@ def strip_contact_block(text: str) -> str:
     patterns = [
         r"\S+@\S+\.\S+",  # email
         r"\(?\d{3}\)?[\s\-]\d{3}[\s\-]\d{4}",  # phone
-        r"\d+\s+\w+\s+(St|Ave|Rd|Blvd|Dr|Lane|Way)",  # street address
+        # street address, allowing multi-word names ("1801 N Broad St")
+        r"\d+\s+(?:\w+\s+){1,4}(St|Street|Ave|Avenue|Rd|Road|Blvd|Dr|Drive|Lane|Ln|Way|Ct|Court)\.?\b",
     ]
     combined = re.compile("|".join(patterns), re.IGNORECASE)
     cleaned_lines = [line for line in text.splitlines() if not combined.search(line)]

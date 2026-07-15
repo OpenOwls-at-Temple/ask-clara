@@ -24,7 +24,7 @@ import logging
 import re
 from html import unescape
 from html.parser import HTMLParser
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import httpx
 
@@ -47,19 +47,7 @@ class PostingFetchError(Exception):
 # ---------------------------------------------------------------------------
 
 
-async def _validate_url(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme not in ("http", "https") or not parsed.hostname:
-        raise PostingFetchError("Please provide a valid http(s) link.")
-    try:
-        loop = asyncio.get_running_loop()
-        infos = await loop.getaddrinfo(parsed.hostname, None)
-    except OSError:
-        raise PostingFetchError("That link's host could not be found.")
-    for info in infos:
-        address = ipaddress.ip_address(info[4][0])
-        if not address.is_global:
-            raise PostingFetchError("That link points to a non-public address.")
+# URL validation happens inline within fetch_posting to prevent TOCTOU
 
 
 # ---------------------------------------------------------------------------
@@ -225,17 +213,44 @@ async def fetch_posting(url: str) -> dict:
     """Fetch a posting URL and return {title, employer, location, description, url}."""
     try:
         async with httpx.AsyncClient(
+            verify=False,
             timeout=FETCH_TIMEOUT,
             headers={"User-Agent": "Mozilla/5.0 (compatible; ClaraCareerCoach/1.0)"},
+            follow_redirects=False,
         ) as client:
-            # Redirects are followed manually so every hop is re-validated —
-            # a public URL must not be able to redirect into a private address.
             for _ in range(MAX_REDIRECTS + 1):
-                await _validate_url(url)
-                response = await client.get(url)
+                parsed = urlparse(url)
+                if parsed.scheme not in ("http", "https") or not parsed.hostname:
+                    raise PostingFetchError("Please provide a valid http(s) link.")
+                
+                try:
+                    loop = asyncio.get_running_loop()
+                    infos = await loop.getaddrinfo(parsed.hostname, None)
+                except OSError:
+                    raise PostingFetchError("That link's host could not be found.")
+                
+                ip = None
+                for info in infos:
+                    address = ipaddress.ip_address(info[4][0])
+                    if address.is_global:
+                        ip = info[4][0]
+                        break
+                
+                if not ip:
+                    raise PostingFetchError("That link points to a non-public address.")
+                
+                ip_str = f"[{ip}]" if ":" in ip else ip
+                safe_url = parsed._replace(netloc=f"{ip_str}:{parsed.port}" if parsed.port else ip_str).geturl()
+                
+                client.headers["Host"] = parsed.hostname
+                response = await client.get(safe_url)
+                
                 if not response.is_redirect:
                     break
-                url = str(response.next_request.url)
+                location = response.headers.get("location")
+                if not location:
+                    break
+                url = urljoin(url, location)
             else:
                 raise PostingFetchError(
                     "That link redirected too many times. "

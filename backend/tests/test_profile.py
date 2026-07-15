@@ -170,8 +170,9 @@ async def test_linkedin_url_stores_empty_raw_text(client, db_session):
         return "64a2b3c4d5e6f7890a1b2c3d"
 
     with patch(
-        "app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin
-    ), patch("app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()):
+        "app.services.profile_service.insert_linkedin",
+        side_effect=fake_insert_linkedin,
+    ), patch("app.services.profile_service.set_linkedin_doc_id", new=AsyncMock()):
         response = await client.post(
             "/api/profile/linkedin",
             json={"url": "https://linkedin.com/in/test"},
@@ -215,9 +216,10 @@ async def test_linkedin_export_upload_stores_parsed_text(client, db_session):
     fake_pdf_bytes = b"%PDF-1.4 fake"
 
     with patch(
-        "app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin
+        "app.services.profile_service.insert_linkedin",
+        side_effect=fake_insert_linkedin,
     ), patch(
-        "app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()
+        "app.services.profile_service.set_linkedin_doc_id", new=AsyncMock()
     ), patch(
         "app.routes.profile.run_in_threadpool",
         new=AsyncMock(return_value="Parsed LinkedIn export text"),
@@ -272,17 +274,10 @@ async def test_linkedin_export_upload_accepts_csv(client, db_session):
     await db_session.commit()
 
     headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
-    captured = {}
-
-    async def fake_insert_linkedin(mongo, doc):
-        captured["doc"] = doc
-        return "64a2b3c4d5e6f7890a1b2c3d"
-
     csv_bytes = b"Company Name,Title\nAcme,Software Intern\n"
-
     with patch(
-        "app.routes.profile.insert_linkedin", side_effect=fake_insert_linkedin
-    ), patch("app.routes.profile.profile_service.set_linkedin_doc_id", new=AsyncMock()):
+        "app.routes.profile.profile_service.upsert_linkedin_with_consistency", return_value="64a2b3c4d5e6f7890a1b2c3d"
+    ) as mock_upsert:
         response = await client.post(
             "/api/profile/linkedin/upload",
             files={"file": ("Positions.csv", csv_bytes, "text/csv")},
@@ -290,8 +285,8 @@ async def test_linkedin_export_upload_accepts_csv(client, db_session):
         )
 
     assert response.status_code == 200
-    assert "Company Name: Acme" in captured["doc"]["raw_text"]
-    assert "Title: Software Intern" in captured["doc"]["raw_text"]
+    assert "Company Name: Acme" in mock_upsert.call_args.kwargs["raw_text"]
+    assert "Title: Software Intern" in mock_upsert.call_args.kwargs["raw_text"]
 
 
 @pytest.mark.asyncio
@@ -321,6 +316,92 @@ async def test_resume_upload_still_rejects_csv(client, db_session):
         headers=headers,
     )
     assert response.status_code == 400
+
+
+def _fake_mongo(inserted_id="507f1f77bcf86cd799439011"):
+    from unittest.mock import AsyncMock, MagicMock
+
+    collection = MagicMock()
+    collection.insert_one = AsyncMock(return_value=MagicMock(inserted_id=inserted_id))
+    collection.delete_one = AsyncMock()
+    mongo = MagicMock()
+    mongo.__getitem__.return_value = collection
+    return mongo, collection
+
+
+@pytest.mark.asyncio
+async def test_resume_upsert_deletes_mongo_doc_when_postgres_write_fails(monkeypatch):
+    """The Mongo document must not be orphaned if the Postgres link fails."""
+    import uuid
+    from unittest.mock import AsyncMock
+    from bson import ObjectId
+
+    from app.services import profile_service
+
+    mongo, collection = _fake_mongo()
+    monkeypatch.setattr(profile_service, "get_profile", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        profile_service,
+        "set_resume_doc_id",
+        AsyncMock(side_effect=RuntimeError("postgres down")),
+    )
+
+    with pytest.raises(RuntimeError):
+        await profile_service.upsert_resume_with_consistency(
+            None, mongo, uuid.uuid4(), raw_text="some resume text"
+        )
+
+    collection.delete_one.assert_awaited_once_with(
+        {"_id": ObjectId("507f1f77bcf86cd799439011")}
+    )
+
+
+@pytest.mark.asyncio
+async def test_resume_upsert_deletes_old_doc_on_success(monkeypatch):
+    import uuid
+    from unittest.mock import AsyncMock, MagicMock
+    from bson import ObjectId
+
+    from app.services import profile_service
+
+    old_doc_id = "64a2b3c4d5e6f7890a1b2c3d"
+    mongo, collection = _fake_mongo()
+    profile = MagicMock(resume_doc_id=old_doc_id)
+    monkeypatch.setattr(profile_service, "get_profile", AsyncMock(return_value=profile))
+    monkeypatch.setattr(profile_service, "set_resume_doc_id", AsyncMock())
+
+    doc_id = await profile_service.upsert_resume_with_consistency(
+        None, mongo, uuid.uuid4(), raw_text="new resume text"
+    )
+
+    assert doc_id == "507f1f77bcf86cd799439011"
+    collection.delete_one.assert_awaited_once_with({"_id": ObjectId(old_doc_id)})
+
+
+@pytest.mark.asyncio
+async def test_linkedin_upsert_deletes_mongo_doc_when_postgres_write_fails(monkeypatch):
+    import uuid
+    from unittest.mock import AsyncMock
+    from bson import ObjectId
+
+    from app.services import profile_service
+
+    mongo, collection = _fake_mongo()
+    monkeypatch.setattr(profile_service, "get_profile", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        profile_service,
+        "set_linkedin_doc_id",
+        AsyncMock(side_effect=RuntimeError("postgres down")),
+    )
+
+    with pytest.raises(RuntimeError):
+        await profile_service.upsert_linkedin_with_consistency(
+            None, mongo, uuid.uuid4(), raw_text="export text"
+        )
+
+    collection.delete_one.assert_awaited_once_with(
+        {"_id": ObjectId("507f1f77bcf86cd799439011")}
+    )
 
 
 @pytest.mark.asyncio

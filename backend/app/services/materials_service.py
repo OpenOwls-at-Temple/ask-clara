@@ -52,7 +52,6 @@ async def generate_materials(
     )
     resume_content = {
         "raw_text": trim_resume_text((resume_doc or {}).get("raw_text", "")),
-        "structured_json": (resume_doc or {}).get("structured_json"),
     }
 
     linkedin_content = None
