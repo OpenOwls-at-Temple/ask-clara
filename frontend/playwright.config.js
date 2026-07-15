@@ -11,6 +11,9 @@ export default defineConfig({
   timeout: 60_000,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [["html", { open: "never" }]] : "list",
+  // CI runners cold-compile the Vite module graph on first request; give
+  // assertions more headroom than the 5s default.
+  expect: { timeout: 15_000 },
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
@@ -36,6 +39,12 @@ export default defineConfig({
       url: "http://localhost:5173",
       reuseExistingServer: false,
       timeout: 60_000,
+      // CI has no frontend/.env (gitignored) — provide the Vite vars here so
+      // the app's fetch wrapper gets a real API base in every environment.
+      env: {
+        VITE_API_BASE_URL: "/api",
+        VITE_GOOGLE_CLIENT_ID: "test-client-id",
+      },
     },
   ],
 });
