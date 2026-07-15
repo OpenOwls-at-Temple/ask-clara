@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { getProfile, updateProfile, uploadResume, submitLinkedIn, uploadLinkedInExport } from "../services/profile";
+import {
+  getProfile,
+  updateProfile,
+  uploadResume,
+  submitLinkedIn,
+  uploadLinkedInExport,
+} from "../services/profile";
 
 export function useProfile() {
   const [profile, setProfile] = useState(null);
@@ -50,5 +56,14 @@ export function useProfile() {
     return data;
   }
 
-  return { profile, loading, error, save, saveResume, saveLinkedIn, saveLinkedInExport, reload: load };
+  return {
+    profile,
+    loading,
+    error,
+    save,
+    saveResume,
+    saveLinkedIn,
+    saveLinkedInExport,
+    reload: load,
+  };
 }

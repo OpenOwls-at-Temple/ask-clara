@@ -1,4 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 import {
   login as apiLogin,
@@ -34,16 +40,19 @@ export function AuthProvider({ children }) {
     if (!user) return;
 
     // Refresh token in background every 10 minutes
-    const interval = setInterval(async () => {
-      try {
-        const data = await refreshToken();
-        setAccessToken(data.access_token);
-        setUser(data.user);
-      } catch (err) {
-        setAccessToken(null);
-        setUser(null);
-      }
-    }, 10 * 60 * 1000);
+    const interval = setInterval(
+      async () => {
+        try {
+          const data = await refreshToken();
+          setAccessToken(data.access_token);
+          setUser(data.user);
+        } catch (err) {
+          setAccessToken(null);
+          setUser(null);
+        }
+      },
+      10 * 60 * 1000,
+    );
 
     return () => clearInterval(interval);
   }, [user]);

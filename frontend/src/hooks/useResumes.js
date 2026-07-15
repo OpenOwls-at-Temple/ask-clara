@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { generateResumes, listResumes, updateResume } from "../services/documents";
+import {
+  generateResumes,
+  listResumes,
+  updateResume,
+} from "../services/documents";
 
 export function useResumes() {
   const [resumes, setResumes] = useState([]);
@@ -35,7 +39,7 @@ export function useResumes() {
   async function saveEdit(id, editedText) {
     await updateResume(id, editedText);
     setResumes((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, edited_text: editedText } : r))
+      prev.map((r) => (r.id === id ? { ...r, edited_text: editedText } : r)),
     );
   }
 

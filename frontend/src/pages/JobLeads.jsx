@@ -8,7 +8,7 @@ function fitLabel(score) {
   return `${Math.round(score * 100)}% fit`;
 }
 
-function LeadCard({ lead, onStatus }) {
+function LeadCard({ lead, onStatus, onTailor }) {
   const applied = lead.status === "applied";
   const dismissed = lead.status === "dismissed";
 
@@ -64,6 +64,12 @@ function LeadCard({ lead, onStatus }) {
             <>
               <button
                 className="btn btn-secondary btn-sm"
+                onClick={() => onTailor(lead)}
+              >
+                Tailor materials
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
                 onClick={() => onStatus(lead.id, applied ? "seen" : "applied")}
               >
                 {applied ? "Undo applied" : "I applied"}
@@ -93,6 +99,9 @@ export default function JobLeads() {
 
   const active = (leads ?? []).filter((l) => l.status !== "dismissed");
   const dismissed = (leads ?? []).filter((l) => l.status === "dismissed");
+
+  // Feature 8: hand the lead to the Materials page for per-posting tailoring.
+  const tailor = (lead) => navigate("/materials", { state: { lead } });
 
   return (
     <>
@@ -170,7 +179,12 @@ export default function JobLeads() {
                 <div className="result-section-line" />
               </div>
               {active.map((lead) => (
-                <LeadCard key={lead.id} lead={lead} onStatus={setStatus} />
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  onStatus={setStatus}
+                  onTailor={tailor}
+                />
               ))}
             </div>
           )}
@@ -191,7 +205,12 @@ export default function JobLeads() {
               </div>
               {showDismissed &&
                 dismissed.map((lead) => (
-                  <LeadCard key={lead.id} lead={lead} onStatus={setStatus} />
+                  <LeadCard
+                    key={lead.id}
+                    lead={lead}
+                    onStatus={setStatus}
+                    onTailor={tailor}
+                  />
                 ))}
             </div>
           )}

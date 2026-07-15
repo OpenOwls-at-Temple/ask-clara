@@ -273,7 +273,7 @@ async def test_download_resume_returns_docx(client, db_session):
 
     with patch("app.routes.documents.get_mongo_db", return_value=mock_mongo):
         response = await client.get(
-            "/api/resumes/64a2b3c4d5e6f7890a1b2c3d/download",
+            "/api/resumes/64a2b3c4d5e6f7890a1b2c3d/download?format=docx",
             headers=headers,
         )
 

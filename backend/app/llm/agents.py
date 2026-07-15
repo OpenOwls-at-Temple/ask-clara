@@ -16,6 +16,8 @@ ASSESSMENT_MAX_OUTPUT = 2000
 RESUME_MAX_OUTPUT = 3000
 PLAN_MAX_OUTPUT = 2000
 JOB_MATCH_MAX_OUTPUT = 1500
+# Resume variant + cover letter + brief in one response — bigger than any single doc.
+POSTING_MATERIALS_MAX_OUTPUT = 4000
 
 
 def _extract_json(raw: str) -> str:
@@ -110,6 +112,21 @@ async def run_planning_agent(context: dict) -> dict:
         PLAN_MAX_OUTPUT,
         "Planning",
         schema=prompts.DEVELOPMENT_PLAN_SCHEMA,
+    )
+
+
+async def run_posting_materials_agent(context: dict) -> dict:
+    """context keys: profile (structured), resume_content, linkedin_content (optional),
+    target_roles (list of {rank, title}), posting ({title, employer, location,
+    description}). One call produces the resume variant + cover letter +
+    employer brief + fit summary for one posting.
+    """
+    return await _call_and_parse(
+        prompts.POSTING_MATERIALS_SYSTEM,
+        json.dumps(context),
+        POSTING_MATERIALS_MAX_OUTPUT,
+        "PostingMaterials",
+        schema=prompts.POSTING_MATERIALS_SCHEMA,
     )
 
 

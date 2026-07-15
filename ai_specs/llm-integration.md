@@ -196,31 +196,52 @@ The student's saved assessment plus profile and ranked target roles.
 
 ### Prompt 4: Posting Materials — Resume Variant, Cover Letter, Employer Brief (Phase 2)
 
-**Purpose:** Tailor materials to a specific job posting and brief the student on the employer.
+**Purpose:** Tailor materials to a specific job posting, evaluate the fit against the student's goals, and brief the student on the employer.
 
-**System Prompt:**
+**System Prompt (abridged — full text in `prompts.py`):**
 ```
-You are Clara, tailoring application materials for one specific job posting.
-Using only the student's real record, produce: (1) a resume variant tuned to
-the posting, (2) a matching cover letter, and (3) a short, factual brief on
-the employer based on the posting text. Emphasize technical fit and
-quantifiable outcomes that genuinely exist. Do not fabricate anything about
-the student or the employer. Respond in JSON only.
+You are Clara, tailoring application materials for a STEM student applying
+to ONE specific job posting. Use ONLY the experience, education, skills, and
+outcomes present in the student's source material, and ONLY the posting text
+provided. Do not fabricate anything about the student or the employer.
+Produce four things: (1) fit_summary — an honest, specific evaluation of how
+the student's background and ranked target roles line up with this posting;
+(2) resume_variant — a resume tuned to the posting, following the same
+bullet-quality rules as base resume generation (active verbs,
+accomplished/measured-by/by-doing, no clichés, no "we", named technologies,
+consistent dates, degree/track-based section ordering); (3) cover_letter —
+a one-page letter connecting the student's real experience to the posting's
+requirements, no placeholder brackets; (4) employer_brief — a short factual
+brief based ONLY on the posting text, saying so if the posting reveals
+little. Ungrounded suggestions go in notes_for_student, never into the
+documents. Respond in raw JSON only (exact structure embedded in prompt).
 ```
 
 **User Input:**
 ```
-The student's profile and resume content plus the job posting text and link.
+A JSON object with the student's structured profile, ranked target_roles
+(so the fit evaluation is against stated goals), trimmed resume content,
+optional LinkedIn content, and the posting ({title, employer, location,
+description}). The description is capped in code (~5,000 chars) before the
+prompt is built. The posting comes from a stored job lead, a fetched
+user-provided link, or manual entry when fetching fails.
 ```
 
 **Expected Output Format:**
 ```json
 {
+  "fit_summary": "string",
   "resume_variant": { "sections": [{ "heading": "string", "content": "string" }] },
   "cover_letter": "string",
-  "employer_brief": "string"
+  "employer_brief": "string",
+  "notes_for_student": ["string"]
 }
 ```
+
+**Notes:**
+- `fit_summary` and `notes_for_student` were added when Feature 8 shipped: the fit evaluation answers "should I apply?", and notes_for_student keeps the fabrication guardrail — ungrounded content never enters the documents.
+- Enforced via structured outputs on the Anthropic path (`POSTING_MATERIALS_SCHEMA`), like Prompts 1–3 and 5.
+- Posting text is third-party content fetched server-side (`posting_fetch.py` — JSON-LD JobPosting extraction with a visible-text fallback, SSRF-guarded); it is bounded before storage and again before any model call.
 
 ---
 
@@ -307,7 +328,7 @@ User action (frontend)
 | Concern | Decision |
 |---------|----------|
 | Max input size | **Deterministic pre-truncation:** cap parsed experience to the ~3 most recent/relevant roles and enforce a hard input-string limit (start at ~1,500 tokens) *before* building the prompt. Do not pass raw multi-page documents and do not rely on the model to summarize them. Numbers are configurable, but truncation happens in code, not in the LLM. |
-| Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans (constants in `agents.py`) — keep outputs bounded. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
+| Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans; ~4,000 for posting materials (resume variant + cover letter + brief in one response) — constants in `agents.py`. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
 | Per-call budget awareness | All caps are deterministic and enforced in code (input truncation in `orchestrator.py`, output constants in `agents.py`); agents reuse stored assessments instead of re-running. There is **no** runtime token estimation or per-call cost logging — spend and usage are observed externally (see Ops & Monitoring below). |
 | What is excluded from context | Contact details (PII), unrelated past target roles, completed plan items |
 | Caching | Save generated assessments/resumes so viewing them later does not re-call the model |
@@ -410,4 +431,5 @@ Anthropic Console spend ÷ `students_who_generated`.
 | 2026-06-26 | Prompt 2 | Active-verb + accomplished/measured-by/by-doing bullet rules, cliché/fabrication guards, date formatting, degree/track-based section ordering | Resume draft quality |
 | 2026-07-10 | Prompt 3 | Embedded the exact JSON output schema; 6–10 item count and short-string value guidance | Same schema fix as Prompts 1–2, applied when Feature 6 shipped |
 | 2026-07-11 | Prompt 5 | Initial version: rank-weighted scoring guidance, degree-level fit rules, no-invention guard, batched index-keyed output | Feature 7 (job-leads scanning) shipped |
+| 2026-07-13 | Prompt 4 | Full version replacing the placeholder: added fit_summary + notes_for_student outputs, resume bullet-quality rules reused from Prompt 2, no-placeholder cover-letter rule, posting-text-only employer brief, embedded JSON schema | Feature 8 (per-posting materials) shipped |
 | YYYY-MM-DD | Prompt 2 | (planned) Add explicit "no fabrication" validator pass | Guard against invented experience in resumes |

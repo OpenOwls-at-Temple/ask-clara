@@ -55,7 +55,28 @@ Full narrative in `docs/progress-archive.md`.
 
 ## In Progress
 
-_(none)_
+- [ ] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — posting-materials
+  agent (fit summary + tailored docs, structured outputs), posting fetch from a pasted link
+  (JSON-LD extraction, SSRF-guarded) with manual-entry fallback, `posting_materials` Mongo
+  collection, quota-gated `/api/materials*` + `/api/leads/:id/materials` routes, `Materials.jsx`
+  page + "Tailor materials" on leads. Backend + frontend tests pass; **awaiting manual browser
+  verification before ticking the Feature 8 ACs.**
+- [ ] 2026-07-14 — Intake fixes from user testing: LinkedIn upload now accepts the CSVs that
+  LinkedIn's data export actually produces (instructions corrected to point at profile →
+  More → Save to PDF as the easy path); intake page gained a step-1 completion banner with a
+  "Continue to AI Assessment" button and tells students what's still missing (LinkedIn marked
+  optional). Feature 2 AC wording synced in `features.md`. Awaiting browser verification.
+- [ ] 2026-07-15 — Typst resume PDFs (adapted from the PI's career-ops template): new
+  `resume_pdf.py` renders generated resumes to one-page PDFs (auto-shrinks 11pt → 9pt to fit);
+  `GET /api/resumes/:id/download` now defaults to PDF (`?format=docx` kept), new
+  `GET /api/materials/:id/resume/download` for posting-tailored variants; "Download PDF" is the
+  primary UI action with copy-text/DOCX as fallback. New dep: `typst` (pip). Follow-up
+  2026-07-15: resume PDFs/DOCX never include the target job title (student name only in the
+  header); the resume preview is embedded inline below "Tailored resume" (Materials) / behind a
+  View PDF toggle (Resumes) as a Typst-rendered PNG image (`?format=png`) — no browser
+  PDF-viewer chrome — with a Download resume button that fetches the real PDF; "Copy resume"
+  opens a scrollable text popup (rendered via portal so it centers on the viewport). Awaiting
+  browser verification.
 
 ---
 

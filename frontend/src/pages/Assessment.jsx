@@ -7,7 +7,9 @@ export default function Assessment() {
   const { assessments, loading, error, load, run } = useAssessment();
   const navigate = useNavigate();
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const latest = assessments[0];
 
@@ -16,12 +18,19 @@ export default function Assessment() {
       <NavBar />
       <div className="page-shell">
         <div className="page-content fade-up">
-
           {/* Header */}
           <div className="page-header">
-            <button className="page-back" onClick={() => navigate("/dashboard")}>← Dashboard</button>
+            <button
+              className="page-back"
+              onClick={() => navigate("/dashboard")}
+            >
+              ← Dashboard
+            </button>
           </div>
-          <div className="page-title-block" style={{ marginBottom: "var(--s8)" }}>
+          <div
+            className="page-title-block"
+            style={{ marginBottom: "var(--s8)" }}
+          >
             <p className="page-eyebrow">AI-Powered</p>
             <h1 className="page-title">Career Assessment</h1>
           </div>
@@ -33,14 +42,31 @@ export default function Assessment() {
                 {latest ? "Run a new assessment" : "Get your first assessment"}
               </div>
               <div className="assessment-run-desc">
-                Clara reviews your profile and resume against your target roles to identify
-                strengths, gaps, and concrete next steps.
+                Clara reviews your profile and resume against your target roles
+                to identify strengths, gaps, and concrete next steps.
               </div>
             </div>
-            <button className="btn btn-primary btn-lg" onClick={run} disabled={loading}>
+            <button
+              className="btn btn-primary btn-lg"
+              onClick={run}
+              disabled={loading}
+            >
               {loading ? (
-                <><div className="spinner" style={{ borderTopColor: "white", borderColor: "rgba(255,255,255,0.3)" }} /> Analyzing…</>
-              ) : latest ? "Run New Assessment" : "Run Assessment"}
+                <>
+                  <div
+                    className="spinner"
+                    style={{
+                      borderTopColor: "white",
+                      borderColor: "rgba(255,255,255,0.3)",
+                    }}
+                  />{" "}
+                  Analyzing…
+                </>
+              ) : latest ? (
+                "Run New Assessment"
+              ) : (
+                "Run Assessment"
+              )}
             </button>
           </div>
 
@@ -105,17 +131,42 @@ export default function Assessment() {
                   <div className="result-list">
                     {latest.gaps.map((g, i) => (
                       <div key={i} className="result-item item-gap">
-                        <div className="result-item-icon" style={{ display: "flex", alignItems: "center" }}>
-                          <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M9 2.25L1.5 15.75h15L9 2.25z" fill="#FCD34D" stroke="#F59E0B" strokeWidth="1.2" strokeLinejoin="round"/>
-                            <rect x="8.25" y="7" width="1.5" height="4.5" rx="0.75" fill="#92400E"/>
-                            <circle cx="9" cy="13" r="0.75" fill="#92400E"/>
+                        <div
+                          className="result-item-icon"
+                          style={{ display: "flex", alignItems: "center" }}
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M9 2.25L1.5 15.75h15L9 2.25z"
+                              fill="#FCD34D"
+                              stroke="#F59E0B"
+                              strokeWidth="1.2"
+                              strokeLinejoin="round"
+                            />
+                            <rect
+                              x="8.25"
+                              y="7"
+                              width="1.5"
+                              height="4.5"
+                              rx="0.75"
+                              fill="#92400E"
+                            />
+                            <circle cx="9" cy="13" r="0.75" fill="#92400E" />
                           </svg>
                         </div>
                         <div className="result-item-body">
                           <div className="result-item-label">
                             {g.area}
-                            <span className="result-item-tag">Role #{g.target_rank}</span>
+                            <span className="result-item-tag">
+                              Role #{g.target_rank}
+                            </span>
                           </div>
                           {g.why && <div>{g.why}</div>}
                         </div>
@@ -137,7 +188,10 @@ export default function Assessment() {
                   <div className="result-list">
                     {latest.recommendations.map((r, i) => (
                       <div key={i} className="result-item item-rec">
-                        <div className="result-item-icon" style={{ fontWeight: 700, color: "var(--cherry)" }}>
+                        <div
+                          className="result-item-icon"
+                          style={{ fontWeight: 700, color: "var(--cherry)" }}
+                        >
                           {i + 1}
                         </div>
                         <div className="result-item-body">
@@ -151,12 +205,13 @@ export default function Assessment() {
               </div>
 
               <div className="counselor-note">
-                This assessment is a starting point. A Temple Career Center counselor can help
-                you go further — visit <strong>temple.edu/life-at-temple/careers</strong> to book an appointment.
+                This assessment is a starting point. A Temple Career Center
+                counselor can help you go further — visit{" "}
+                <strong>temple.edu/life-at-temple/careers</strong> to book an
+                appointment.
               </div>
             </div>
           )}
-
         </div>
       </div>
     </>

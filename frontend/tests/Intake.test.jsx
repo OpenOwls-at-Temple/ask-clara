@@ -36,7 +36,7 @@ function renderIntake(hookOverrides = {}) {
   return render(
     <MemoryRouter>
       <Intake />
-    </MemoryRouter>
+    </MemoryRouter>,
   );
 }
 
@@ -122,6 +122,49 @@ describe("Intake — Background & Goals collapsible section", () => {
   });
 });
 
+// ─── Step-1 completion banner ────────────────────────────────────────────────
+
+describe("Intake — completion / continue banner", () => {
+  const completeProfile = {
+    ...savedProfile,
+    resume_doc_id: "mongo-id-abc",
+    target_roles: [
+      { rank: 1, title: "sw engineer" },
+      { rank: 2, title: "data engineer" },
+      { rank: 3, title: "ml engineer" },
+    ],
+  };
+
+  test("shows continue button when resume is on file and 3 roles saved", () => {
+    renderIntake({ profile: completeProfile });
+    expect(screen.getByText("Step 1 complete")).toBeInTheDocument();
+    expect(screen.getByText("Continue to AI Assessment →")).toBeInTheDocument();
+  });
+
+  test("notes that LinkedIn is optional when it was skipped", () => {
+    renderIntake({ profile: { ...completeProfile, linkedin_doc_id: null } });
+    expect(screen.getByText(/LinkedIn is optional/)).toBeInTheDocument();
+  });
+
+  test("tells the student what is missing when profile is incomplete", () => {
+    renderIntake({ profile: savedProfile }); // 2 roles, no resume
+    expect(screen.getByText("To finish Step 1")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Upload your resume and save all three ranked target roles/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Continue to AI Assessment →")).toBeNull();
+  });
+
+  test("asks only for missing roles when resume is already uploaded", () => {
+    renderIntake({
+      profile: { ...savedProfile, resume_doc_id: "mongo-id-abc" }, // 2 roles saved
+    });
+    expect(screen.getByText(/Save 1 more target role/)).toBeInTheDocument();
+  });
+});
+
 // ─── Resume section ──────────────────────────────────────────────────────────
 
 describe("Intake — Resume section", () => {
@@ -141,9 +184,13 @@ describe("Intake — Resume section", () => {
   });
 
   test("shows 'Resume on file' card when profile.resume_doc_id is set and no preview active", () => {
-    renderIntake({ profile: { ...savedProfile, resume_doc_id: "mongo-id-abc" } });
+    renderIntake({
+      profile: { ...savedProfile, resume_doc_id: "mongo-id-abc" },
+    });
     expect(screen.getByText("Resume on file")).toBeInTheDocument();
-    expect(screen.getByText("Select a new file below to replace it")).toBeInTheDocument();
+    expect(
+      screen.getByText("Select a new file below to replace it"),
+    ).toBeInTheDocument();
   });
 
   test("does NOT show 'Resume on file' card when profile has no resume_doc_id", () => {
@@ -176,7 +223,9 @@ describe("Intake — Resume section", () => {
     const saveResume = jest.fn().mockResolvedValue({ resume_doc_id: "new-id" });
     const { container } = renderIntake({ profile: savedProfile, saveResume });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     // The resume file input is the first file input in the Resume card
     const inputs = container.querySelectorAll("input[type='file']");
     // Resume card input comes before LinkedIn inputs
@@ -199,7 +248,9 @@ describe("Intake — Resume section", () => {
   test("creates blob URL for PDF selection and shows embed", () => {
     const { container } = renderIntake({ profile: savedProfile });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     const input = container.querySelectorAll("input[type='file']")[0];
     fireEvent.change(input, { target: { files: [file] } });
 
@@ -225,12 +276,22 @@ describe("Intake — Resume section", () => {
   test("revokes blob URL when component unmounts", () => {
     const { container, unmount } = renderIntake({ profile: savedProfile });
 
-    const file = new File(["content"], "resume.pdf", { type: "application/pdf" });
+    const file = new File(["content"], "resume.pdf", {
+      type: "application/pdf",
+    });
     const input = container.querySelectorAll("input[type='file']")[0];
     fireEvent.change(input, { target: { files: [file] } });
 
     unmount();
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:fake-url");
+  });
+
+  test("upload zone accepts CSV for the LinkedIn export input", () => {
+    const { container } = renderIntake({ profile: savedProfile });
+    const inputs = container.querySelectorAll("input[type='file']");
+    // inputs[0] = resume, inputs[1] = LinkedIn export
+    expect(inputs[0].getAttribute("accept")).toBe(".pdf,.docx");
+    expect(inputs[1].getAttribute("accept")).toBe(".pdf,.docx,.csv");
   });
 
   test("revokes old blob URL and creates a new one when a second PDF is selected", () => {

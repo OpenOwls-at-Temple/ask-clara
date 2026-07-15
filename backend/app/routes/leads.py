@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
-from app.database import get_db
+from app.database import get_db, get_mongo_db
 from app.models.lead import JobLead
 from app.models.user import User
+from app.routes.materials import consume_quota_slot, refund_quota_slot
 from app.schemas.lead import LeadOut, LeadStatusUpdate
-from app.services import lead_service
+from app.schemas.materials import LeadMaterialsRequest, MaterialsOut
+from app.services import lead_service, materials_service
+from app.services.posting_fetch import PostingFetchError
 
 router = APIRouter()
 
@@ -67,11 +70,52 @@ async def update_lead(
     return _to_lead_out(lead)
 
 
-@router.post("/leads/{lead_id}/materials")
+@router.post("/leads/{lead_id}/materials", response_model=MaterialsOut)
 async def generate_lead_materials(
     lead_id: str,
+    body: LeadMaterialsRequest | None = None,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    # Feature 8 (per-posting resume + cover letter + employer brief) — not yet implemented.
-    raise NotImplementedError
+    """Feature 8: tailored resume + cover letter + employer brief for one lead.
+
+    If the request body carries no pasted description, Clara fetches the
+    lead's original posting page; when that fails, a 422 asks the student to
+    paste the description manually.
+    """
+    try:
+        lead_uuid = uuid.UUID(lead_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found."
+        )
+
+    # Ownership is verified before the quota slot is consumed.
+    lead = await materials_service.get_owned_lead(db, user.id, lead_uuid)
+    if lead is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found."
+        )
+
+    await consume_quota_slot(db, user.id)
+
+    mongo = get_mongo_db()
+    try:
+        doc = await materials_service.generate_for_lead(
+            db, mongo, user.id, lead, description=body.description if body else None
+        )
+    except Exception as exc:
+        await refund_quota_slot(db, user.id)
+        if isinstance(exc, PostingFetchError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+            )
+        if isinstance(exc, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    return MaterialsOut(**doc)

@@ -22,6 +22,13 @@ _ALLOWED_MIME = {
     "application/pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 }
+# LinkedIn's "Get a copy of your data" export produces CSV files (Profile.csv,
+# Positions.csv, ...), so the LinkedIn upload additionally accepts CSV.
+_LINKEDIN_ALLOWED_MIME = _ALLOWED_MIME | {
+    "text/csv",
+    "application/csv",
+    "application/vnd.ms-excel",  # some browsers label .csv this way
+}
 _MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
@@ -57,6 +64,39 @@ def _parse_resume(content: bytes, content_type: str, filename: str) -> str:
     raise HTTPException(
         status_code=400, detail="Unsupported file type. Upload a PDF or DOCX."
     )
+
+
+def _parse_csv_export(content: bytes) -> str:
+    """Flatten a LinkedIn data-export CSV into readable "Header: value" lines.
+
+    Export CSVs (Profile.csv, Positions.csv, Education.csv, ...) have one
+    header row; each data row becomes a block of non-empty fields so the text
+    reads like profile content rather than a raw table.
+    """
+    import csv
+
+    text = content.decode("utf-8-sig", errors="replace")
+    rows = list(csv.reader(io.StringIO(text)))
+    if not rows:
+        return ""
+    header, *data = rows
+    blocks = []
+    for row in data:
+        lines = [
+            f"{header[i].strip()}: {value.strip()}"
+            for i, value in enumerate(row)
+            if i < len(header) and value.strip()
+        ]
+        if lines:
+            blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _parse_linkedin_export(content: bytes, content_type: str, filename: str) -> str:
+    ext = (filename or "").rsplit(".", 1)[-1].lower()
+    if ext == "csv" or "csv" in content_type:
+        return _parse_csv_export(content)
+    return _parse_resume(content, content_type, filename)
 
 
 @router.get("/profile", response_model=ProfileOut)
@@ -186,15 +226,15 @@ async def upload_linkedin_export(
     content = await file.read()
     if len(content) > _MAX_FILE_BYTES:
         raise HTTPException(status_code=400, detail="File exceeds 5 MB limit")
-    if file.content_type not in _ALLOWED_MIME and not (file.filename or "").endswith(
-        (".pdf", ".docx")
-    ):
+    if file.content_type not in _LINKEDIN_ALLOWED_MIME and not (
+        file.filename or ""
+    ).endswith((".pdf", ".docx", ".csv")):
         raise HTTPException(
-            status_code=400, detail="Only PDF and DOCX files are accepted"
+            status_code=400, detail="Only PDF, DOCX, and CSV files are accepted"
         )
 
     raw_text = await run_in_threadpool(
-        _parse_resume, content, file.content_type or "", file.filename or ""
+        _parse_linkedin_export, content, file.content_type or "", file.filename or ""
     )
 
     mongo = get_mongo_db()
