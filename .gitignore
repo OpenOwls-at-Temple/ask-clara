@@ -19,6 +19,10 @@ dist/
 # Build artifacts
 frontend/dist/
 
+# Playwright
+frontend/test-results/
+frontend/playwright-report/
+
 # OS
 .DS_Store
 

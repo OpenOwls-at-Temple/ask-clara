@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     frontend_origin: str = "http://localhost:5173"
     # Phase 2: shared secret for the GitHub Actions job-scan trigger.
     scan_trigger_secret: Optional[str] = None
+    # E2E only: enables POST /auth/test-login (local environment + matching
+    # header required; the endpoint 404s otherwise). Never set in staging/prod.
+    test_login_secret: Optional[str] = None
 
     model_config = {"env_file": ".env"}
 

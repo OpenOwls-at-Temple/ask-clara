@@ -40,6 +40,8 @@
 | Token lifetime | Access ~15 min; refresh ~7 days |
 | Password hashing | N/A (no passwords stored — SSO only) |
 
+**E2E test authentication:** `POST /auth/test-login` mints a session for a synthetic `@temple.edu` user without Google, for the Playwright suite only. It is triple-gated — returns 404 unless `ENVIRONMENT=local`, `TEST_LOGIN_SECRET` is set, and the caller presents it in `X-Test-Login-Secret` (constant-time compare). It only replaces the Google credential exchange; every downstream authorization check remains fully enforced. The secret is never set in staging or production.
+
 ---
 
 ## Authorization & Roles
