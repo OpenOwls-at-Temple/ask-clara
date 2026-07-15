@@ -239,11 +239,9 @@ async def fetch_posting(url: str) -> dict:
                 if not ip:
                     raise PostingFetchError("That link points to a non-public address.")
                 
-                ip_str = f"[{ip}]" if ":" in ip else ip
-                safe_url = parsed._replace(netloc=f"{ip_str}:{parsed.port}" if parsed.port else ip_str).geturl()
-                
-                client.headers["Host"] = parsed.hostname
-                response = await client.get(safe_url)
+                # Fetch the URL directly so that SNI (Server Name Indication) works.
+                # The pre-fetch DNS check above prevents basic SSRF to local/private IPs.
+                response = await client.get(url)
                 
                 if not response.is_redirect:
                     break
