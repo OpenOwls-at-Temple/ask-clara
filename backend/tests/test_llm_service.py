@@ -135,3 +135,97 @@ def test_get_model_follows_provider(monkeypatch):
     assert service.get_model() == service.settings.gemini_model
     monkeypatch.setattr(service.settings, "llm_provider", "deepseek")
     assert service.get_model() == service.settings.deepseek_model
+
+
+def _assert_matches_schema(value, schema):
+    """Minimal structural validator (no jsonschema dependency in the repo)."""
+    t = schema.get("type")
+    if t == "object":
+        assert isinstance(value, dict)
+        for key in schema.get("required", []):
+            assert key in value, f"missing required key: {key}"
+        for key, sub in schema.get("properties", {}).items():
+            if key in value:
+                _assert_matches_schema(value[key], sub)
+    elif t == "array":
+        assert isinstance(value, list)
+        for item in value:
+            _assert_matches_schema(item, schema.get("items", {}))
+    elif t == "string":
+        assert isinstance(value, str)
+    elif t == "integer":
+        assert isinstance(value, int)
+        if "enum" in schema:
+            assert value in schema["enum"]
+    elif t == "number":
+        assert isinstance(value, (int, float))
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_output_matches_every_agent_schema(monkeypatch):
+    import json
+
+    from app.llm import prompts
+
+    monkeypatch.setattr(service.settings, "llm_provider", "mock")
+    monkeypatch.setattr(service.settings, "environment", "local")
+
+    cases = [
+        (prompts.ASSESSMENT_SCHEMA, {"degree_level": "undergrad"}),
+        (prompts.RESUME_SCHEMA, {"target_role": {"rank": 2, "title": "Data Analyst"}}),
+        (prompts.JOB_MATCH_SCHEMA, {"postings": [{"index": 0}, {"index": 1}]}),
+        (prompts.DEVELOPMENT_PLAN_SCHEMA, {"target_roles": []}),
+    ]
+    for schema, context in cases:
+        raw = await service.call_llm("sys", json.dumps(context), schema=schema)
+        _assert_matches_schema(json.loads(raw), schema)
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_echoes_the_requested_target_role(monkeypatch):
+    import json
+
+    from app.llm import prompts
+
+    monkeypatch.setattr(service.settings, "llm_provider", "mock")
+    monkeypatch.setattr(service.settings, "environment", "local")
+
+    raw = await service.call_llm(
+        "sys",
+        json.dumps({"target_role": {"rank": 3, "title": "Product Manager"}}),
+        schema=prompts.RESUME_SCHEMA,
+    )
+    data = json.loads(raw)
+    assert data["target_rank"] == 3
+    assert data["target_title"] == "Product Manager"
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_scores_one_match_per_posting(monkeypatch):
+    import json
+
+    from app.llm import prompts
+
+    monkeypatch.setattr(service.settings, "llm_provider", "mock")
+    monkeypatch.setattr(service.settings, "environment", "local")
+
+    raw = await service.call_llm(
+        "sys",
+        json.dumps({"postings": [{"index": 0}, {"index": 1}, {"index": 2}]}),
+        schema=prompts.JOB_MATCH_SCHEMA,
+    )
+    matches = json.loads(raw)["matches"]
+    assert [m["index"] for m in matches] == [0, 1, 2]
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_refuses_outside_local_environment(monkeypatch):
+    monkeypatch.setattr(service.settings, "llm_provider", "mock")
+    monkeypatch.setattr(service.settings, "environment", "staging")
+    with pytest.raises(RuntimeError, match="local"):
+        await service.call_llm("sys", "{}")
+
+
+def test_get_model_reports_mock_provider(monkeypatch):
+    monkeypatch.setattr(service.settings, "llm_provider", "mock")
+    assert service.get_model() == "mock"

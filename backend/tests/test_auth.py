@@ -186,3 +186,79 @@ async def test_logout_without_cookie_still_succeeds():
     result = await logout(Response(), refresh_token=None, db=db)
     assert result == {"ok": True}
     db.commit.assert_not_awaited()
+
+
+def _test_login_env(monkeypatch, environment="local", secret="e2e-secret"):
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "environment", environment)
+    monkeypatch.setattr(settings, "test_login_secret", secret)
+
+
+@pytest.mark.asyncio
+async def test_test_login_is_hidden_outside_local_environment(client, monkeypatch):
+    _test_login_env(monkeypatch, environment="staging")
+    response = await client.post(
+        "/api/auth/test-login",
+        json={"email": "e2e@temple.edu"},
+        headers={"X-Test-Login-Secret": "e2e-secret"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_test_login_is_hidden_when_secret_unset(client, monkeypatch):
+    _test_login_env(monkeypatch, secret=None)
+    response = await client.post(
+        "/api/auth/test-login",
+        json={"email": "e2e@temple.edu"},
+        headers={"X-Test-Login-Secret": "anything"},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_test_login_is_hidden_on_wrong_or_missing_secret(client, monkeypatch):
+    _test_login_env(monkeypatch)
+    wrong = await client.post(
+        "/api/auth/test-login",
+        json={"email": "e2e@temple.edu"},
+        headers={"X-Test-Login-Secret": "wrong"},
+    )
+    assert wrong.status_code == 404
+
+    missing = await client.post(
+        "/api/auth/test-login", json={"email": "e2e@temple.edu"}
+    )
+    assert missing.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_test_login_rejects_non_temple_email(client, monkeypatch):
+    _test_login_env(monkeypatch)
+    response = await client.post(
+        "/api/auth/test-login",
+        json={"email": "e2e@gmail.com"},
+        headers={"X-Test-Login-Secret": "e2e-secret"},
+    )
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_test_login_mints_session_and_sets_refresh_cookie(
+    client, db_session, monkeypatch
+):
+    _test_login_env(monkeypatch)
+    response = await client.post(
+        "/api/auth/test-login",
+        json={"email": "e2e@temple.edu", "display_name": "E2E Student"},
+        headers={"X-Test-Login-Secret": "e2e-secret"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["access_token"]
+    assert body["user"]["temple_email"] == "e2e@temple.edu"
+
+    set_cookie = response.headers.get("set-cookie", "")
+    assert "refresh_token=" in set_cookie
+    assert "HttpOnly" in set_cookie

@@ -52,6 +52,7 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-11 — Feature 7: job leads scanning & alerts — curated Greenhouse/Lever board scan (GitHub Actions cron → secret-gated trigger), keyword pre-filter + batched job-match agent, fit-ranked `JobLeads.jsx` with in-app new-lead badges; migration `473b757cc096` on staging + local; browser-verified (PR #20)
 - [x] 2026-07-15 — Architecture-review fixes: PDF/DOCX parsing moved to `document_parser_service`, cross-DB write consistency centralized in `profile_service.upsert_{resume,linkedin}_with_consistency`, PII address regex hardened for multi-word street names; new tests for orchestrator PII stripping, LLM retry/fallback, parser, and Mongo compensation (PR #21)
 - [x] 2026-07-15 — Frontend data-layer test coverage: Jest `import.meta.env` transform (babel-plugin-transform-vite-meta-env, test-env only), 86 new tests across all 6 API services, all 6 hooks, and SignIn/Dashboard/Resumes pages (`test/frontend-unit-tests`)
+- [x] 2026-07-15 — Playwright E2E critical path: sign-in → intake → resume upload → assessment → resume generation against `LLM_PROVIDER=mock` (no-network canned provider, local-only guard) + triple-gated `POST /auth/test-login`; new `e2e` CI job with trace artifacts; specs synced (auth-security, llm-integration, CLAUDE.md) (`feature/e2e-critical-path`)
 
 ---
 

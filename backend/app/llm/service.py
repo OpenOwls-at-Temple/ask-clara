@@ -5,6 +5,7 @@ import anthropic
 import httpx
 
 from app.config import settings
+from app.llm import mock_provider
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +131,16 @@ async def _call_deepseek(system: str, user_content: str, max_tokens: int) -> str
     return None
 
 
+def _call_mock(user_content: str, schema: dict | None) -> str:
+    # Belt-and-braces for the anthropic-only staging/prod rule: the mock
+    # provider must never be reachable outside a local environment.
+    if settings.environment != "local":
+        raise RuntimeError(
+            "LLM_PROVIDER=mock is restricted to local environments (E2E/CI only)."
+        )
+    return mock_provider.generate(user_content, schema)
+
+
 def get_model() -> str:
     """Return the model name for the currently configured provider."""
     provider = settings.llm_provider.lower()
@@ -137,6 +148,8 @@ def get_model() -> str:
         return settings.gemini_model
     if provider == "deepseek":
         return settings.deepseek_model
+    if provider == "mock":
+        return "mock"
     return settings.anthropic_model
 
 
@@ -157,8 +170,11 @@ async def call_llm(
         return await _call_gemini(system, user_content, max_tokens)
     if provider == "deepseek":
         return await _call_deepseek(system, user_content, max_tokens)
+    if provider == "mock":
+        return _call_mock(user_content, schema)
     if provider == "anthropic":
         return await _call_anthropic(system, user_content, max_tokens, schema=schema)
     raise ValueError(
-        f"Unknown LLM_PROVIDER '{provider}'. Valid values: anthropic, gemini, deepseek."
+        f"Unknown LLM_PROVIDER '{provider}'. "
+        "Valid values: anthropic, gemini, deepseek, mock (local only)."
     )

@@ -1,7 +1,8 @@
+import secrets
 import uuid
 
 import httpx
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, Header, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -95,6 +96,48 @@ async def login(
         email=email,
         display_name=claims.get("name", email),
     )
+
+    access_token = create_access_token(str(user.id))
+    refresh_token = create_refresh_token(str(user.id), user.token_version)
+    _set_refresh_cookie(response, refresh_token)
+
+    return {"access_token": access_token, "user": _user_out(user)}
+
+
+class TestLoginRequest(BaseModel):
+    email: str
+    display_name: str = "E2E Test Student"
+
+
+@router.post("/test-login")
+async def test_login(
+    body: TestLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    x_test_login_secret: str | None = Header(default=None),
+):
+    """E2E-only: mint a session for a synthetic local user without Google.
+
+    Triple-gated — 404s (indistinguishable from a nonexistent route) unless
+    the environment is local, TEST_LOGIN_SECRET is configured, and the caller
+    presents it. Authorization checks downstream are fully enforced; this
+    endpoint only replaces the Google credential exchange.
+    """
+    if (
+        settings.environment != "local"
+        or not settings.test_login_secret
+        or not x_test_login_secret
+        or not secrets.compare_digest(x_test_login_secret, settings.test_login_secret)
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+    if not body.email.endswith(f"@{settings.allowed_email_domain}"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Sign-in is restricted to @{settings.allowed_email_domain} accounts",
+        )
+
+    user = await upsert_user(db, email=body.email, display_name=body.display_name)
 
     access_token = create_access_token(str(user.id))
     refresh_token = create_refresh_token(str(user.id), user.token_version)
