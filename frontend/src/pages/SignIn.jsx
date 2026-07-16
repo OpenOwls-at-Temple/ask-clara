@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../hooks/useAuth";
+import { testLogin } from "../services/auth";
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
@@ -9,6 +10,20 @@ export default function SignIn() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
   const btnRef = useRef(null);
+  const [testEmail, setTestEmail] = useState("test1@temple.edu");
+
+  const handleTestLogin = async (e) => {
+    e.preventDefault();
+    try {
+      await testLogin(testEmail);
+      // Full reload so the AuthProvider restores the session from the new refresh cookie
+      window.location.href = "/dashboard";
+    } catch {
+      alert(
+        "Test login failed. Check that the backend runs with ENVIRONMENT=local and TEST_LOGIN_SECRET set.",
+      );
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -111,6 +126,42 @@ export default function SignIn() {
           <div className="signin-google-wrap">
             <div ref={btnRef} />
           </div>
+
+          {import.meta.env.MODE === "development" && (
+            <div
+              style={{
+                marginTop: "2rem",
+                padding: "1rem",
+                background: "rgba(255,255,255,0.05)",
+                borderRadius: "8px",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.8rem",
+                  opacity: 0.7,
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Local Development Only:
+              </p>
+              <form
+                onSubmit={handleTestLogin}
+                style={{ display: "flex", gap: "0.5rem" }}
+              >
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  className="input input-sm"
+                  style={{ flex: 1 }}
+                />
+                <button type="submit" className="btn btn-sm btn-secondary">
+                  Test Login
+                </button>
+              </form>
+            </div>
+          )}
 
           <div className="signin-divider">
             <span className="signin-divider-text">

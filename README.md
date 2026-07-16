@@ -81,6 +81,7 @@ Fill out the variables inside `.env`:
 - `JWT_SECRET`: A long random string to sign JWTs (e.g., generate via `openssl rand -hex 32`).
 - `ALLOWED_EMAIL_DOMAIN`: `temple.edu`
 - `ENVIRONMENT`: `local`
+- `TEST_LOGIN_SECRET`: Enables the local test-login flow and the Playwright E2E suite (see "Test Login" below). The pre-filled default matches the frontend's; **never set this in staging/production.**
 
 ##### Run Database Migrations (Postgres)
 Initialize and migrate the database schema using Alembic:
@@ -113,12 +114,33 @@ cp .env.example .env
 Update `.env`:
 - `VITE_API_BASE_URL`: `/api` (This works because Vite's dev server proxies `/api` to the backend)
 - `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth Web Client ID.
+- `VITE_TEST_LOGIN_SECRET`: Must match the backend's
+- `TEST_LOGIN_SECRET` (see "Test Login" below). The `.env.example` defaults on both sides already match.
 
 ##### Start the Frontend Server
 ```bash
 npm run dev
 ```
 The React application will be running locally at `http://localhost:5173`.
+
+---
+
+#### 4. Test Login (Local Development Only)
+
+You can sign in without a Google account or a `@temple.edu` email while developing locally. When the frontend runs in dev mode (`npm run dev`), the sign-in page shows a **"Local Development Only"** form: enter any `@temple.edu` email (default `test1@temple.edu`) and click **Test Login**. The backend creates (or reuses) a synthetic user with that email and issues a normal session.
+
+For this to work, the backend `.env` must have:
+- `ENVIRONMENT=local`
+- `TEST_LOGIN_SECRET` set (the `.env.example` default is `e2e-local-secret`)
+
+and the frontend's `VITE_TEST_LOGIN_SECRET` must match `TEST_LOGIN_SECRET`. If you keep the `.env.example` defaults on both sides, no extra configuration is needed.
+
+This is safe by design:
+- The form is only rendered in Vite dev builds — it is stripped from production bundles.
+- The backend endpoint (`POST /auth/test-login`) responds `404` unless `ENVIRONMENT=local` **and** the secret matches, so it is indistinguishable from a nonexistent route in staging/production. Never set `TEST_LOGIN_SECRET` outside local development.
+- Emails are still restricted to the `ALLOWED_EMAIL_DOMAIN` (`temple.edu`).
+
+The same endpoint powers the Playwright E2E suite (`frontend/e2e/`), which authenticates test users through it instead of Google SSO.
 
 ---
 
