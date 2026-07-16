@@ -13,4 +13,7 @@ export const updateLeadStatus = (leadId, status) =>
 export const markLeadsSeen = () =>
   request("/leads/mark-seen", { method: "POST" });
 
+// Student-triggered scan — the backend allows it once per 24 hours (429 after).
+export const runScan = () => request("/leads/scan", { method: "POST" });
+
 // Feature 8 lives in services/materials.js (generateLeadMaterials et al.).

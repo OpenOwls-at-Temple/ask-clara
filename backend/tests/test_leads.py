@@ -382,6 +382,166 @@ async def test_student_can_update_lead_status_and_mark_seen(client, db_session):
 
 
 # ---------------------------------------------------------------------------
+# Student-triggered manual scan (once per rolling 24h)
+# ---------------------------------------------------------------------------
+
+
+async def _last_scan_at(db_session, user_id):
+    from sqlalchemy import select
+
+    from app.models.user import User
+
+    return (
+        await db_session.execute(
+            select(User.last_lead_scan_at).where(User.id == user_id)
+        )
+    ).scalar_one()
+
+
+async def _set_last_scan_at(db_session, user_id, value):
+    from sqlalchemy import text
+
+    await db_session.execute(
+        text(
+            "UPDATE users SET last_lead_scan_at = :value "
+            "WHERE id = CAST(:user_id AS uuid)"
+        ),
+        {"value": value, "user_id": str(user_id)},
+    )
+    await db_session.commit()
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_creates_leads_and_stamps_timestamp(client, db_session):
+    from app.auth import create_access_token
+
+    user_id, _ = await _seed_student(db_session)
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    postings = [_posting("Software Engineer", url="https://example.com/manual-1")]
+
+    with (
+        patch(
+            "app.services.job_sources.fetch_all_postings",
+            new=AsyncMock(return_value=postings),
+        ),
+        patch("app.llm.agents.call_llm", new=AsyncMock(return_value=_MATCH_RESPONSE)),
+    ):
+        response = await client.post("/api/leads/scan", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {"created": 1}
+    assert await _last_scan_at(db_session, user_id) is not None
+
+    leads = (await client.get("/api/leads", headers=headers)).json()
+    assert len(leads) == 1
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_second_call_within_24h_is_rejected(client, db_session):
+    from app.auth import create_access_token
+
+    user_id, _ = await _seed_student(db_session)
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    postings = [_posting("Software Engineer", url="https://example.com/manual-2")]
+
+    llm = AsyncMock(return_value=_MATCH_RESPONSE)
+    fetch = AsyncMock(return_value=postings)
+    with (
+        patch("app.services.job_sources.fetch_all_postings", new=fetch),
+        patch("app.llm.agents.call_llm", new=llm),
+    ):
+        first = await client.post("/api/leads/scan", headers=headers)
+        second = await client.post("/api/leads/scan", headers=headers)
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert fetch.await_count == 1  # cooldown blocked before any fetching
+    assert llm.await_count == 1
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_allowed_again_after_cooldown(client, db_session):
+    from datetime import timedelta
+
+    from app.auth import create_access_token
+
+    user_id, _ = await _seed_student(db_session)
+    stale = datetime.utcnow() - timedelta(hours=25)
+    await _set_last_scan_at(db_session, user_id, stale)
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    with (
+        patch(
+            "app.services.job_sources.fetch_all_postings",
+            new=AsyncMock(return_value=[]),
+        ),
+        patch("app.llm.agents.call_llm", new=AsyncMock(return_value=_MATCH_RESPONSE)),
+    ):
+        response = await client.post("/api/leads/scan", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json() == {"created": 0}  # no postings — still a valid scan
+    assert await _last_scan_at(db_session, user_id) > stale
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_requires_target_roles_without_burning_slot(
+    client, db_session
+):
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+
+    user_id = uuid.uuid4()
+    db_session.add(
+        User(
+            id=user_id,
+            temple_email=f"{user_id.hex[:8]}@temple.edu",
+            display_name="No Profile",
+            role=UserRole.student,
+            created_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    response = await client.post("/api/leads/scan", headers=headers)
+
+    assert response.status_code == 400
+    assert await _last_scan_at(db_session, user_id) is None
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_failure_returns_503_and_restores_timestamp(
+    client, db_session
+):
+    from datetime import timedelta
+
+    from app.auth import create_access_token
+
+    user_id, _ = await _seed_student(db_session)
+    stale = datetime.utcnow() - timedelta(hours=25)
+    await _set_last_scan_at(db_session, user_id, stale)
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    with patch(
+        "app.services.job_sources.fetch_all_postings",
+        new=AsyncMock(side_effect=RuntimeError("boards unreachable")),
+    ):
+        response = await client.post("/api/leads/scan", headers=headers)
+
+    assert response.status_code == 503
+    # The failed attempt must not consume the daily slot
+    assert await _last_scan_at(db_session, user_id) == stale
+
+
+@pytest.mark.asyncio
+async def test_manual_scan_requires_authentication(client):
+    # HTTPBearer rejects the missing Authorization header with 403
+    response = await client.post("/api/leads/scan")
+    assert response.status_code == 403
+
+
+# ---------------------------------------------------------------------------
 # Admin trigger endpoints (shared-secret machine-to-machine auth)
 # ---------------------------------------------------------------------------
 

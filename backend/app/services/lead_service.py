@@ -1,7 +1,9 @@
 """Feature 7: job-leads scanning and matching.
 
-The scan is triggered by the scheduled GitHub Actions workflow via
-POST /api/admin/scan-jobs (never by students) and runs as a background task:
+The cohort-wide scan is triggered by the scheduled GitHub Actions workflow
+via POST /api/admin/scan-jobs and runs as a background task; students can
+also trigger a single-profile scan via POST /api/leads/scan, limited to once
+per 24 hours per user. The cohort scan works like this:
 
 1. Fetch postings from the curated Greenhouse/Lever boards (job_sources.py).
 2. For each profile with target roles, a deterministic keyword pre-filter
@@ -179,6 +181,18 @@ async def scan_for_profile(
         created += 1
     await db.commit()
     return created
+
+
+async def scan_for_user(db: AsyncSession, profile: Profile) -> int:
+    """One student's on-demand scan: fetch postings, match just their profile.
+
+    Unlike run_scan, this never touches the module-level scan status — the
+    admin/nightly flow and its 409 guard stay independent of manual scans.
+    """
+    from app.services.job_sources import fetch_all_postings
+
+    postings = await fetch_all_postings()
+    return await scan_for_profile(db, profile, postings)
 
 
 async def run_scan(db: AsyncSession, postings: list[dict] | None = None) -> dict:

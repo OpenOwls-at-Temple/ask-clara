@@ -79,6 +79,7 @@ export default function SignIn() {
           <div className="signin-wordmark">
             <div className="signin-wordmark-icon">C</div>
             <span className="signin-wordmark-text">Ask Clara</span>
+            <span className="signin-wordmark-beta">(Beta Version)</span>
           </div>
 
           <h1 className="signin-headline">

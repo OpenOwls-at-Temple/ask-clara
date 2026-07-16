@@ -1,10 +1,17 @@
 import { useState } from "react";
-import { listLeads, markLeadsSeen, updateLeadStatus } from "../services/leads";
+import {
+  listLeads,
+  markLeadsSeen,
+  runScan,
+  updateLeadStatus,
+} from "../services/leads";
 
 export function useLeads() {
   const [leads, setLeads] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanNotice, setScanNotice] = useState(null);
 
   async function load() {
     setLoading(true);
@@ -41,5 +48,35 @@ export function useLeads() {
     }
   }
 
-  return { leads, loading, error, load, setStatus };
+  async function scan() {
+    setScanning(true);
+    setScanNotice(null);
+    setError(null);
+    try {
+      const { created } = await runScan();
+      await load();
+      setScanNotice(
+        created
+          ? `Found ${created} new lead${created === 1 ? "" : "s"} for you.`
+          : "No new matches this time — Clara will keep scanning nightly.",
+      );
+    } catch (err) {
+      // request() surfaces only the HTTP status code as the error message.
+      if (err.message === "429") {
+        setScanNotice(
+          "Clara already scanned for you in the last 24 hours. Try again tomorrow.",
+        );
+      } else if (err.message === "400") {
+        setScanNotice(
+          "Add your three ranked target roles in your profile first.",
+        );
+      } else {
+        setError(err);
+      }
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  return { leads, loading, error, load, setStatus, scan, scanning, scanNotice };
 }

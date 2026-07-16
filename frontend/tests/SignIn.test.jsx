@@ -42,6 +42,13 @@ describe("SignIn page", () => {
     jest.clearAllMocks();
   });
 
+  test("shows the wordmark with the beta label", () => {
+    useAuth.mockReturnValue({ user: null, login: jest.fn() });
+    renderSignIn();
+    expect(screen.getByText("Ask Clara")).toBeInTheDocument();
+    expect(screen.getByText("(Beta Version)")).toBeInTheDocument();
+  });
+
   test("redirects straight to the dashboard when already signed in", () => {
     useAuth.mockReturnValue({ user: { id: "u1" }, login: jest.fn() });
     renderSignIn();

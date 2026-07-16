@@ -8,35 +8,71 @@ def _make_roles(ranks):
     return [TargetRoleIn(rank=r, title=f"Role {r}") for r in ranks]
 
 
-def test_profile_accepts_up_to_three_roles():
-    p = ProfileIn(target_roles=_make_roles([1, 2, 3]))
+def _full_payload(**overrides):
+    payload = {
+        "degree_level": "undergrad",
+        "major_program": "Computer Science",
+        "expected_graduation": "2026-05",
+        "track": "industry",
+        "target_roles": _make_roles([1, 2, 3]),
+    }
+    payload.update(overrides)
+    return payload
+
+
+def test_profile_accepts_complete_payload():
+    p = ProfileIn(**_full_payload())
     assert len(p.target_roles) == 3
+    assert p.degree_level == "undergrad"
 
 
 def test_profile_rejects_duplicate_ranks():
     with pytest.raises(ValidationError):
-        ProfileIn(target_roles=_make_roles([1, 1, 3]))
+        ProfileIn(**_full_payload(target_roles=_make_roles([1, 1, 3])))
 
 
 def test_profile_rejects_more_than_three_roles():
     with pytest.raises(ValidationError):
-        ProfileIn(target_roles=_make_roles([1, 2, 3, 4]))  # rank 4 also invalid
+        # rank 4 also invalid
+        ProfileIn(**_full_payload(target_roles=_make_roles([1, 2, 3, 4])))
+
+
+def test_profile_rejects_fewer_than_three_roles():
+    with pytest.raises(ValidationError):
+        ProfileIn(**_full_payload(target_roles=_make_roles([1, 2])))
+    with pytest.raises(ValidationError):
+        ProfileIn(**_full_payload(target_roles=[]))
 
 
 def test_profile_rejects_invalid_degree_level():
     with pytest.raises(ValidationError):
-        ProfileIn(degree_level="highschool")
+        ProfileIn(**_full_payload(degree_level="highschool"))
 
 
 def test_profile_rejects_invalid_track():
     with pytest.raises(ValidationError):
-        ProfileIn(track="freelance")
+        ProfileIn(**_full_payload(track="freelance"))
 
 
-def test_profile_accepts_partial_update_with_no_roles():
-    p = ProfileIn(degree_level="undergrad", major_program="Computer Science")
-    assert p.target_roles is None
-    assert p.degree_level == "undergrad"
+@pytest.mark.parametrize(
+    "missing",
+    ["degree_level", "major_program", "expected_graduation", "track", "target_roles"],
+)
+def test_profile_rejects_missing_required_fields(missing):
+    payload = _full_payload()
+    del payload[missing]
+    with pytest.raises(ValidationError):
+        ProfileIn(**payload)
+
+
+def test_profile_rejects_blank_major_program():
+    with pytest.raises(ValidationError):
+        ProfileIn(**_full_payload(major_program="   "))
+
+
+def test_profile_is_first_gen_stays_optional():
+    p = ProfileIn(**_full_payload())
+    assert p.is_first_gen is None
 
 
 @pytest.mark.asyncio
@@ -103,41 +139,50 @@ async def test_profile_upsert_replaces_target_roles(db_session):
     await db_session.commit()
 
     data1 = ProfileIn(
-        degree_level="undergrad",
-        major_program="CS",
-        track="industry",
-        target_roles=[
-            TargetRoleIn(rank=1, title="Software Engineer"),
-            TargetRoleIn(rank=2, title="Data Scientist"),
-        ],
+        **_full_payload(
+            target_roles=[
+                TargetRoleIn(rank=1, title="Software Engineer"),
+                TargetRoleIn(rank=2, title="Data Scientist"),
+                TargetRoleIn(rank=3, title="ML Engineer"),
+            ]
+        )
     )
     profile1 = await upsert_profile(db_session, user_id, data1)
-    assert len(profile1.target_roles) == 2
+    assert len(profile1.target_roles) == 3
     assert sorted([r.title for r in profile1.target_roles]) == [
         "Data Scientist",
+        "ML Engineer",
         "Software Engineer",
     ]
 
     data2 = ProfileIn(
-        target_roles=[
-            TargetRoleIn(rank=1, title="PM"),
-        ]
+        **_full_payload(
+            target_roles=[
+                TargetRoleIn(rank=1, title="PM"),
+                TargetRoleIn(rank=2, title="Product Analyst"),
+                TargetRoleIn(rank=3, title="UX Researcher"),
+            ]
+        )
     )
     profile2 = await upsert_profile(db_session, user_id, data2)
-    assert len(profile2.target_roles) == 1
-    assert profile2.target_roles[0].title == "PM"
+    assert len(profile2.target_roles) == 3
+    assert sorted([r.title for r in profile2.target_roles]) == [
+        "PM",
+        "Product Analyst",
+        "UX Researcher",
+    ]
 
 
 def test_profile_accepts_yyyy_mm_expected_graduation():
     from datetime import date
 
-    p = ProfileIn(expected_graduation="2026-05")
+    p = ProfileIn(**_full_payload(expected_graduation="2026-05"))
     assert p.expected_graduation == date(2026, 5, 1)
 
 
-def test_profile_accepts_empty_expected_graduation():
-    p = ProfileIn(expected_graduation="")
-    assert p.expected_graduation is None
+def test_profile_rejects_empty_expected_graduation():
+    with pytest.raises(ValidationError):
+        ProfileIn(**_full_payload(expected_graduation=""))
 
 
 @pytest.mark.asyncio
@@ -276,7 +321,8 @@ async def test_linkedin_export_upload_accepts_csv(client, db_session):
     headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
     csv_bytes = b"Company Name,Title\nAcme,Software Intern\n"
     with patch(
-        "app.routes.profile.profile_service.upsert_linkedin_with_consistency", return_value="64a2b3c4d5e6f7890a1b2c3d"
+        "app.routes.profile.profile_service.upsert_linkedin_with_consistency",
+        return_value="64a2b3c4d5e6f7890a1b2c3d",
     ) as mock_upsert:
         response = await client.post(
             "/api/profile/linkedin/upload",

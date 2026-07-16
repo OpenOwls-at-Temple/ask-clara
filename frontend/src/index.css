@@ -486,6 +486,11 @@ body {
   letter-spacing: -0.02em;
   color: var(--white);
 }
+.signin-wordmark-beta {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+}
 
 .signin-headline {
   font-size: clamp(2.25rem, 4vw, 3.5rem);

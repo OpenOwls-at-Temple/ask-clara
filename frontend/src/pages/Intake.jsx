@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useProfile } from "../hooks/useProfile";
 import NavBar from "../components/NavBar";
+import CollapsedSectionCard from "../components/CollapsedSectionCard";
 
 const DEGREE_LEVELS = [
   { value: "undergrad", label: "Undergraduate" },
@@ -71,6 +72,8 @@ export default function Intake() {
   const [resumeStatus, setResumeStatus] = useState(null);
   const [linkedInStatus, setLinkedInStatus] = useState(null);
   const [bgCollapsed, setBgCollapsed] = useState(false);
+  const [resumeCollapsed, setResumeCollapsed] = useState(false);
+  const [linkedInCollapsed, setLinkedInCollapsed] = useState(false);
   const [resumePreviewUrl, setResumePreviewUrl] = useState(null);
   const [resumeFileName, setResumeFileName] = useState(null);
 
@@ -90,9 +93,23 @@ export default function Intake() {
       is_first_gen: profile.is_first_gen ?? false,
       roles,
     });
-    if (profile.resume_doc_id) setResumeStatus("Uploaded");
-    if (profile.linkedin_doc_id) setLinkedInStatus("Saved");
-    if (profile.degree_level && profile.target_roles?.length > 0) {
+    if (profile.resume_doc_id) {
+      setResumeStatus("Uploaded");
+      setResumeCollapsed(true);
+    }
+    if (profile.linkedin_doc_id) {
+      setLinkedInStatus("Saved");
+      setLinkedInCollapsed(true);
+    }
+    // Only a fully complete section earns the collapsed green check —
+    // legacy partial profiles can no longer be re-saved as-is.
+    if (
+      profile.degree_level &&
+      profile.major_program &&
+      profile.expected_graduation &&
+      profile.track &&
+      profile.target_roles?.length === 3
+    ) {
       setBgCollapsed(true);
     }
   }, [profile]);
@@ -115,16 +132,31 @@ export default function Intake() {
     e.preventDefault();
     setError(null);
     setSaveSuccess(false);
+
+    const allFieldsFilled =
+      form.degree_level &&
+      form.major_program.trim() &&
+      form.expected_graduation &&
+      form.track;
+    const allRolesFilled = form.roles.every((title) => title.trim().length > 0);
+    if (!allFieldsFilled || !allRolesFilled) {
+      setError(
+        "Please complete all fields and enter all three target roles before saving.",
+      );
+      return;
+    }
+
     setSaving(true);
     try {
-      const target_roles = form.roles
-        .map((title, i) => ({ rank: i + 1, title: title.trim() }))
-        .filter((r) => r.title.length > 0);
+      const target_roles = form.roles.map((title, i) => ({
+        rank: i + 1,
+        title: title.trim(),
+      }));
       await save({
-        degree_level: form.degree_level || null,
-        major_program: form.major_program || null,
-        expected_graduation: form.expected_graduation || null,
-        track: form.track || null,
+        degree_level: form.degree_level,
+        major_program: form.major_program.trim(),
+        expected_graduation: form.expected_graduation,
+        track: form.track,
         is_first_gen: form.is_first_gen,
         target_roles,
       });
@@ -146,6 +178,7 @@ export default function Intake() {
       setResumeStatus("Uploaded successfully");
       setResumeFile(null);
       setResumeFileName(null);
+      setResumeCollapsed(true);
     } catch {
       setResumeStatus("Upload failed — check file type (PDF/DOCX, max 5 MB)");
     } finally {
@@ -160,6 +193,7 @@ export default function Intake() {
     try {
       await saveLinkedIn(linkedInUrl.trim());
       setLinkedInStatus("URL saved");
+      setLinkedInCollapsed(true);
     } catch {
       setLinkedInStatus("Failed to save. Check the URL and try again.");
     } finally {
@@ -175,6 +209,7 @@ export default function Intake() {
       await saveLinkedInExport(linkedInExportFile);
       setLinkedInStatus("Export uploaded — Clara will use this content");
       setLinkedInExportFile(null);
+      setLinkedInCollapsed(true);
     } catch {
       setLinkedInStatus(
         "Upload failed — check file type (PDF, DOCX, or CSV, max 5 MB)",
@@ -229,36 +264,18 @@ export default function Intake() {
           {/* Background & Goals */}
           <div className="form-card">
             {bgCollapsed ? (
-              <div className="form-card-collapsed">
-                <div className="form-card-collapsed-left">
-                  <div className="form-card-check">✓</div>
-                  <div>
-                    <div
-                      className="form-card-title"
-                      style={{ marginBottom: "var(--s1)" }}
-                    >
-                      Background &amp; Goals
-                    </div>
-                    <div className="form-card-collapsed-summary">
-                      {[
-                        DEGREE_LEVELS.find((d) => d.value === form.degree_level)
-                          ?.label,
-                        form.major_program,
-                        form.roles.filter(Boolean).slice(0, 2).join(" · "),
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </div>
-                  </div>
-                </div>
-                <button
-                  className="btn btn-secondary btn-sm"
-                  type="button"
-                  onClick={() => setBgCollapsed(false)}
-                >
-                  Edit
-                </button>
-              </div>
+              <CollapsedSectionCard
+                title="Background & Goals"
+                summary={[
+                  DEGREE_LEVELS.find((d) => d.value === form.degree_level)
+                    ?.label,
+                  form.major_program,
+                  form.roles.filter(Boolean).slice(0, 2).join(" · "),
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                onEdit={() => setBgCollapsed(false)}
+              />
             ) : (
               <>
                 <div className="form-card-header">
@@ -439,244 +456,286 @@ export default function Intake() {
 
           {/* Resume upload */}
           <div className="form-card">
-            <div className="form-card-header">
-              <div className="form-card-title">Resume</div>
-              <div className="form-card-desc">
-                Upload a PDF or DOCX (max 5 MB). Clara will parse it
-                automatically.
-              </div>
-            </div>
-
-            {resumeStatus && (
-              <div
-                className={
-                  resumeStatus.includes("fail") ||
-                  resumeStatus.includes("failed")
-                    ? "status-error"
-                    : "status-success"
-                }
-                style={{ marginBottom: "var(--s4)" }}
-              >
-                {resumeStatus.includes("fail") ||
-                resumeStatus.includes("failed")
-                  ? "⚠ "
-                  : "✓ "}
-                {resumeStatus}
-              </div>
-            )}
-
-            {resumePreviewUrl && (
-              <div
-                style={{
-                  marginBottom: "var(--s4)",
-                  borderRadius: 6,
-                  overflow: "hidden",
-                  border: "1.5px solid var(--bone)",
-                }}
-              >
-                <embed
-                  src={resumePreviewUrl}
-                  type="application/pdf"
-                  width="100%"
-                  height="420px"
-                />
-              </div>
-            )}
-
-            {!resumePreviewUrl && profile?.resume_doc_id && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "var(--s3)",
-                  padding: "var(--s4)",
-                  marginBottom: "var(--s4)",
-                  background: "var(--fog)",
-                  borderRadius: 6,
-                  border: "1.5px solid var(--bone)",
-                }}
-              >
-                <span style={{ fontSize: "1.5rem" }}>📄</span>
-                <div>
-                  <div
-                    style={{
-                      fontWeight: 600,
-                      fontSize: "0.875rem",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    Resume on file
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--mist)" }}>
-                    Select a new file below to replace it
+            {resumeCollapsed ? (
+              <CollapsedSectionCard
+                title="Resume"
+                summary="Resume on file — click Edit to replace it"
+                onEdit={() => setResumeCollapsed(false)}
+              />
+            ) : (
+              <>
+                <div className="form-card-header">
+                  <div className="form-card-title">Resume</div>
+                  <div className="form-card-desc">
+                    Upload a PDF or DOCX (max 5 MB). Clara will parse it
+                    automatically.
                   </div>
                 </div>
-              </div>
+
+                {resumeStatus && (
+                  <div
+                    className={
+                      resumeStatus.includes("fail") ||
+                      resumeStatus.includes("failed")
+                        ? "status-error"
+                        : "status-success"
+                    }
+                    style={{ marginBottom: "var(--s4)" }}
+                  >
+                    {resumeStatus.includes("fail") ||
+                    resumeStatus.includes("failed")
+                      ? "⚠ "
+                      : "✓ "}
+                    {resumeStatus}
+                  </div>
+                )}
+
+                {resumePreviewUrl && (
+                  <div
+                    style={{
+                      marginBottom: "var(--s4)",
+                      borderRadius: 6,
+                      overflow: "hidden",
+                      border: "1.5px solid var(--bone)",
+                    }}
+                  >
+                    <embed
+                      src={resumePreviewUrl}
+                      type="application/pdf"
+                      width="100%"
+                      height="420px"
+                    />
+                  </div>
+                )}
+
+                {!resumePreviewUrl && profile?.resume_doc_id && (
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "var(--s3)",
+                      padding: "var(--s4)",
+                      marginBottom: "var(--s4)",
+                      background: "var(--fog)",
+                      borderRadius: 6,
+                      border: "1.5px solid var(--bone)",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.5rem" }}>📄</span>
+                    <div>
+                      <div
+                        style={{
+                          fontWeight: 600,
+                          fontSize: "0.875rem",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        Resume on file
+                      </div>
+                      <div
+                        style={{ fontSize: "0.75rem", color: "var(--mist)" }}
+                      >
+                        Select a new file below to replace it
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className="upload-zone"
+                  style={{ marginBottom: "var(--s4)" }}
+                >
+                  <div className="upload-zone-icon">📎</div>
+                  <div className="upload-zone-label">
+                    {resumeFileName ? resumeFileName : "Click to select a file"}
+                  </div>
+                  <div className="upload-zone-hint">PDF or DOCX — max 5 MB</div>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx"
+                    onChange={(e) => {
+                      const f = e.target.files[0] || null;
+                      setResumeFile(f);
+                      if (f) {
+                        setResumeFileName(f.name);
+                        setResumePreviewUrl(
+                          f.type === "application/pdf"
+                            ? URL.createObjectURL(f)
+                            : null,
+                        );
+                      } else {
+                        setResumeFileName(null);
+                        setResumePreviewUrl(null);
+                      }
+                    }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      opacity: 0,
+                      cursor: "pointer",
+                      width: "100%",
+                      height: "100%",
+                    }}
+                  />
+                </div>
+
+                <div style={{ position: "relative" }}>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleResumeUpload}
+                    disabled={!resumeFile || uploadingResume}
+                  >
+                    {uploadingResume ? "Uploading…" : "Upload Resume"}
+                  </button>
+                </div>
+              </>
             )}
-
-            <div className="upload-zone" style={{ marginBottom: "var(--s4)" }}>
-              <div className="upload-zone-icon">📎</div>
-              <div className="upload-zone-label">
-                {resumeFileName ? resumeFileName : "Click to select a file"}
-              </div>
-              <div className="upload-zone-hint">PDF or DOCX — max 5 MB</div>
-              <input
-                type="file"
-                accept=".pdf,.docx"
-                onChange={(e) => {
-                  const f = e.target.files[0] || null;
-                  setResumeFile(f);
-                  if (f) {
-                    setResumeFileName(f.name);
-                    setResumePreviewUrl(
-                      f.type === "application/pdf"
-                        ? URL.createObjectURL(f)
-                        : null,
-                    );
-                  } else {
-                    setResumeFileName(null);
-                    setResumePreviewUrl(null);
-                  }
-                }}
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  opacity: 0,
-                  cursor: "pointer",
-                  width: "100%",
-                  height: "100%",
-                }}
-              />
-            </div>
-
-            <div style={{ position: "relative" }}>
-              <button
-                className="btn btn-primary"
-                onClick={handleResumeUpload}
-                disabled={!resumeFile || uploadingResume}
-              >
-                {uploadingResume ? "Uploading…" : "Upload Resume"}
-              </button>
-            </div>
           </div>
 
           {/* LinkedIn */}
           <div className="form-card">
-            <div className="form-card-header">
-              <div className="form-card-title">LinkedIn Profile</div>
-              <div className="form-card-desc">
-                Upload your LinkedIn data export so Clara can read your full
-                profile content, or save your profile URL as a reference link.
-              </div>
-            </div>
-
-            {linkedInStatus && (
-              <div
-                className={
-                  linkedInStatus.includes("fail") ||
-                  linkedInStatus.includes("failed")
-                    ? "status-error"
-                    : "status-success"
-                }
-                style={{ marginBottom: "var(--s4)" }}
-              >
-                {linkedInStatus.includes("fail") ||
-                linkedInStatus.includes("failed")
-                  ? "⚠ "
-                  : "✓ "}
-                {linkedInStatus}
-              </div>
-            )}
-
-            {/* Export PDF upload — provides actual content to the LLM */}
-            <div style={{ marginBottom: "var(--s6)" }}>
-              <p className="form-label" style={{ marginBottom: "var(--s3)" }}>
-                LinkedIn Export{" "}
-                <span style={{ color: "var(--mist)", fontWeight: 400 }}>
-                  (recommended — PDF, DOCX, or CSV)
-                </span>
-              </p>
-              <p
-                className="t-small"
-                style={{ marginBottom: "var(--s3)", color: "var(--mist)" }}
-              >
-                Easiest: open your LinkedIn profile → click{" "}
-                <strong>More</strong> (below your headline) →{" "}
-                <strong>Save to PDF</strong>, then upload that PDF here. If you
-                used Settings → Data Privacy → "Get a copy of your data"
-                instead, that download is a ZIP of CSV files — unzip it and
-                upload <strong>Profile.csv</strong> (or another CSV like
-                Positions.csv).
-              </p>
-              <div
-                className="upload-zone"
-                style={{ marginBottom: "var(--s4)" }}
-              >
-                <div className="upload-zone-icon">📎</div>
-                <div className="upload-zone-label">
-                  {linkedInExportFile
-                    ? linkedInExportFile.name
-                    : "Click to select your LinkedIn export"}
+            {linkedInCollapsed ? (
+              <CollapsedSectionCard
+                title="LinkedIn Profile"
+                summary="LinkedIn info saved — click Edit to update it"
+                onEdit={() => setLinkedInCollapsed(false)}
+              />
+            ) : (
+              <>
+                <div className="form-card-header">
+                  <div className="form-card-title">
+                    LinkedIn Profile{" "}
+                    <span style={{ color: "var(--mist)", fontWeight: 400 }}>
+                      (optional)
+                    </span>
+                  </div>
+                  <div className="form-card-desc">
+                    Upload your LinkedIn data export so Clara can read your full
+                    profile content, or save your profile URL as a reference
+                    link.
+                  </div>
                 </div>
-                <div className="upload-zone-hint">
-                  PDF, DOCX, or CSV — max 5 MB
+
+                {linkedInStatus && (
+                  <div
+                    className={
+                      linkedInStatus.includes("fail") ||
+                      linkedInStatus.includes("failed")
+                        ? "status-error"
+                        : "status-success"
+                    }
+                    style={{ marginBottom: "var(--s4)" }}
+                  >
+                    {linkedInStatus.includes("fail") ||
+                    linkedInStatus.includes("failed")
+                      ? "⚠ "
+                      : "✓ "}
+                    {linkedInStatus}
+                  </div>
+                )}
+
+                {/* Export PDF upload — provides actual content to the LLM */}
+                <div style={{ marginBottom: "var(--s6)" }}>
+                  <p
+                    className="form-label"
+                    style={{ marginBottom: "var(--s3)" }}
+                  >
+                    LinkedIn Export{" "}
+                    <span style={{ color: "var(--mist)", fontWeight: 400 }}>
+                      (recommended — PDF, DOCX, or CSV)
+                    </span>
+                  </p>
+                  <p
+                    className="t-small"
+                    style={{ marginBottom: "var(--s3)", color: "var(--mist)" }}
+                  >
+                    Easiest: open your LinkedIn profile → click{" "}
+                    <strong>More</strong> (below your headline) →{" "}
+                    <strong>Save to PDF</strong>, then upload that PDF here. If
+                    you used Settings → Data Privacy → "Get a copy of your data"
+                    instead, that download is a ZIP of CSV files — unzip it and
+                    upload <strong>Profile.csv</strong> (or another CSV like
+                    Positions.csv).
+                  </p>
+                  <div
+                    className="upload-zone"
+                    style={{ marginBottom: "var(--s4)" }}
+                  >
+                    <div className="upload-zone-icon">📎</div>
+                    <div className="upload-zone-label">
+                      {linkedInExportFile
+                        ? linkedInExportFile.name
+                        : "Click to select your LinkedIn export"}
+                    </div>
+                    <div className="upload-zone-hint">
+                      PDF, DOCX, or CSV — max 5 MB
+                    </div>
+                    <input
+                      type="file"
+                      accept=".pdf,.docx,.csv"
+                      onChange={(e) =>
+                        setLinkedInExportFile(e.target.files[0] || null)
+                      }
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        opacity: 0,
+                        cursor: "pointer",
+                        width: "100%",
+                        height: "100%",
+                      }}
+                    />
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={handleLinkedInExportUpload}
+                    disabled={!linkedInExportFile || uploadingLinkedIn}
+                  >
+                    {uploadingLinkedIn
+                      ? "Uploading…"
+                      : "Upload LinkedIn Export"}
+                  </button>
                 </div>
-                <input
-                  type="file"
-                  accept=".pdf,.docx,.csv"
-                  onChange={(e) =>
-                    setLinkedInExportFile(e.target.files[0] || null)
-                  }
+
+                {/* URL — stored as a reference link only, not sent to the LLM */}
+                <div
                   style={{
-                    position: "absolute",
-                    inset: 0,
-                    opacity: 0,
-                    cursor: "pointer",
-                    width: "100%",
-                    height: "100%",
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: "var(--s5)",
                   }}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={handleLinkedInExportUpload}
-                disabled={!linkedInExportFile || uploadingLinkedIn}
-              >
-                {uploadingLinkedIn ? "Uploading…" : "Upload LinkedIn Export"}
-              </button>
-            </div>
-
-            {/* URL — stored as a reference link only, not sent to the LLM */}
-            <div
-              style={{
-                borderTop: "1px solid var(--border)",
-                paddingTop: "var(--s5)",
-              }}
-            >
-              <p className="form-label" style={{ marginBottom: "var(--s3)" }}>
-                Profile URL{" "}
-                <span style={{ color: "var(--mist)", fontWeight: 400 }}>
-                  (optional reference link)
-                </span>
-              </p>
-              <div className="form-group" style={{ marginBottom: "var(--s4)" }}>
-                <input
-                  id="linkedin_url"
-                  className="form-input"
-                  type="url"
-                  value={linkedInUrl}
-                  onChange={(e) => setLinkedInUrl(e.target.value)}
-                  placeholder="https://linkedin.com/in/your-profile"
-                />
-              </div>
-              <button
-                className="btn btn-secondary"
-                onClick={handleLinkedInSave}
-                disabled={!linkedInUrl.trim() || savingLinkedIn}
-              >
-                {savingLinkedIn ? "Saving…" : "Save URL"}
-              </button>
-            </div>
+                >
+                  <p
+                    className="form-label"
+                    style={{ marginBottom: "var(--s3)" }}
+                  >
+                    Profile URL{" "}
+                    <span style={{ color: "var(--mist)", fontWeight: 400 }}>
+                      (optional reference link)
+                    </span>
+                  </p>
+                  <div
+                    className="form-group"
+                    style={{ marginBottom: "var(--s4)" }}
+                  >
+                    <input
+                      id="linkedin_url"
+                      className="form-input"
+                      type="url"
+                      value={linkedInUrl}
+                      onChange={(e) => setLinkedInUrl(e.target.value)}
+                      placeholder="https://linkedin.com/in/your-profile"
+                    />
+                  </div>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleLinkedInSave}
+                    disabled={!linkedInUrl.trim() || savingLinkedIn}
+                  >
+                    {savingLinkedIn ? "Saving…" : "Save URL"}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Step-1 completion / continue */}

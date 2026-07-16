@@ -31,3 +31,5 @@ class User(Base):
     )
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # Backs the once-per-24h limit on the student-triggered job-leads scan.
+    last_lead_scan_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

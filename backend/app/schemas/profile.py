@@ -11,33 +11,46 @@ class TargetRoleIn(BaseModel):
 
 
 class ProfileIn(BaseModel):
-    degree_level: Optional[str] = None
-    major_program: Optional[str] = None
-    expected_graduation: Optional[date] = None
-    track: Optional[str] = None
+    """Full profile save — every field except is_first_gen is required.
+
+    An incomplete profile blocks every downstream service, so partial
+    saves are rejected outright rather than persisted in a blocked state.
+    """
+
+    degree_level: str
+    major_program: str = Field(..., min_length=1)
+    expected_graduation: date
+    track: str
     is_first_gen: Optional[bool] = None
-    target_roles: Optional[list[TargetRoleIn]] = None
+    target_roles: list[TargetRoleIn]
 
     @field_validator("expected_graduation", mode="before")
     @classmethod
     def parse_expected_graduation(cls, v):
-        if v == "" or v is None:
+        if v == "":
             return None
         if isinstance(v, str) and len(v) == 7:
             return f"{v}-01"
         return v
 
+    @field_validator("major_program")
+    @classmethod
+    def major_program_not_blank(cls, v):
+        if not v.strip():
+            raise ValueError("major_program is required")
+        return v.strip()
+
     @field_validator("degree_level")
     @classmethod
     def valid_degree_level(cls, v):
-        if v is not None and v not in ("undergrad", "grad", "phd"):
+        if v not in ("undergrad", "grad", "phd"):
             raise ValueError("degree_level must be undergrad, grad, or phd")
         return v
 
     @field_validator("track")
     @classmethod
     def valid_track(cls, v):
-        if v is not None and v not in (
+        if v not in (
             "industry",
             "academia",
             "government",
@@ -51,10 +64,8 @@ class ProfileIn(BaseModel):
     @model_validator(mode="after")
     def validate_target_roles(self):
         roles = self.target_roles
-        if roles is None:
-            return self
-        if len(roles) > 3:
-            raise ValueError("A maximum of three target roles may be submitted")
+        if len(roles) != 3:
+            raise ValueError("All three ranked target roles are required")
         ranks = [r.rank for r in roles]
         if len(ranks) != len(set(ranks)):
             raise ValueError("Target role ranks must be unique")

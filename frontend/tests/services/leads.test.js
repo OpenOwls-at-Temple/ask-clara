@@ -2,6 +2,7 @@ import {
   listLeads,
   updateLeadStatus,
   markLeadsSeen,
+  runScan,
 } from "../../src/services/leads";
 
 function jsonResponse(body) {
@@ -33,6 +34,14 @@ describe("leads service", () => {
     await markLeadsSeen();
     expect(fetch).toHaveBeenCalledWith(
       "/api/leads/mark-seen",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  test("runScan POSTs to /leads/scan", async () => {
+    await runScan();
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/leads/scan",
       expect.objectContaining({ method: "POST" }),
     );
   });
