@@ -89,7 +89,8 @@ function LeadCard({ lead, onStatus, onTailor }) {
 }
 
 export default function JobLeads() {
-  const { leads, loading, error, load, setStatus } = useLeads();
+  const { leads, loading, error, load, setStatus, scan, scanning, scanNotice } =
+    useLeads();
   const [showDismissed, setShowDismissed] = useState(false);
   const navigate = useNavigate();
 
@@ -130,12 +131,29 @@ export default function JobLeads() {
                 Postings matched to your goals
               </div>
               <div className="assessment-run-desc">
-                Clara regularly scans employer job boards and surfaces postings
-                that fit your ranked target roles — with a note on why each one
-                fits you. New matches appear here automatically.
+                Clara scans employer job boards every night and surfaces
+                postings that fit your ranked target roles — with a note on why
+                each one fits you. You can also run a scan yourself, once per
+                day.
               </div>
             </div>
+            <button
+              className="btn btn-primary"
+              onClick={scan}
+              disabled={scanning || loading}
+            >
+              {scanning ? "Scanning…" : "Scan now"}
+            </button>
           </div>
+
+          {scanNotice && (
+            <div
+              className="status-success"
+              style={{ marginBottom: "var(--s6)" }}
+            >
+              {scanNotice}
+            </div>
+          )}
 
           {error && (
             <div className="status-error" style={{ marginBottom: "var(--s6)" }}>
@@ -158,15 +176,31 @@ export default function JobLeads() {
                 <div className="empty-state-icon">🔍</div>
                 <div className="empty-state-title">No leads yet</div>
                 <div className="empty-state-desc">
-                  Clara scans for new postings on weekday mornings. Make sure
-                  your three target roles are up to date, then check back soon.
+                  Clara scans for new postings on weekday mornings, or scan now
+                  yourself (once per day). Make sure your three target roles are
+                  up to date.
                 </div>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => navigate("/intake")}
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "var(--s3)",
+                    justifyContent: "center",
+                  }}
                 >
-                  Review my target roles
-                </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={scan}
+                    disabled={scanning}
+                  >
+                    {scanning ? "Scanning…" : "Scan now"}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    onClick={() => navigate("/intake")}
+                  >
+                    Review my target roles
+                  </button>
+                </div>
               </div>
             )}
 

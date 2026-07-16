@@ -1,6 +1,9 @@
+import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import get_current_user
@@ -10,10 +13,97 @@ from app.models.user import User
 from app.routes.materials import consume_quota_slot, refund_quota_slot
 from app.schemas.lead import LeadOut, LeadStatusUpdate
 from app.schemas.materials import LeadMaterialsRequest, MaterialsOut
-from app.services import lead_service, materials_service
+from app.services import lead_service, materials_service, profile_service
 from app.services.posting_fetch import PostingFetchError
 
+logger = logging.getLogger(__name__)
+
+SCAN_COOLDOWN_HOURS = 24
+
 router = APIRouter()
+
+
+async def consume_scan_slot(db: AsyncSession, user_id: uuid.UUID) -> datetime | None:
+    """Atomic once-per-24h gate for the manual leads scan.
+
+    Stamps last_lead_scan_at only if the cooldown has elapsed, so concurrent
+    requests cannot both pass. Returns the previous timestamp so a failed
+    scan can restore it; raises 429 while the cooldown is active.
+    """
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    cutoff = now - timedelta(hours=SCAN_COOLDOWN_HOURS)
+
+    prev_result = await db.execute(
+        text("SELECT last_lead_scan_at FROM users WHERE id = CAST(:user_id AS uuid)"),
+        {"user_id": str(user_id)},
+    )
+    prev = prev_result.scalar_one()
+
+    result = await db.execute(
+        text(
+            "UPDATE users SET last_lead_scan_at = :now "
+            "WHERE id = CAST(:user_id AS uuid) "
+            "AND (last_lead_scan_at IS NULL OR last_lead_scan_at <= :cutoff) "
+            "RETURNING id"
+        ),
+        {"user_id": str(user_id), "now": now, "cutoff": cutoff},
+    )
+    await db.commit()
+
+    if result.rowcount == 0:
+        next_allowed = prev + timedelta(hours=SCAN_COOLDOWN_HOURS) if prev else now
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                "You can run a manual scan once per day. "
+                f"Try again after {next_allowed.isoformat()}Z."
+            ),
+        )
+    return prev
+
+
+async def refund_scan_slot(
+    db: AsyncSession, user_id: uuid.UUID, prev: datetime | None
+) -> None:
+    """Restore the pre-scan timestamp when a manual scan fails."""
+    await db.execute(
+        text(
+            "UPDATE users SET last_lead_scan_at = :prev "
+            "WHERE id = CAST(:user_id AS uuid)"
+        ),
+        {"user_id": str(user_id), "prev": prev},
+    )
+    await db.commit()
+
+
+@router.post("/leads/scan")
+async def scan_leads(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Feature 7: student-triggered scan of their own profile, once per 24h.
+
+    The profile check runs before the slot is consumed so an incomplete
+    profile never burns the daily allowance.
+    """
+    profile = await profile_service.get_profile(db, user.id)
+    if profile is None or not profile.target_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Add your ranked target roles before scanning for leads.",
+        )
+
+    prev = await consume_scan_slot(db, user.id)
+    try:
+        created = await lead_service.scan_for_user(db, profile)
+    except Exception:
+        logger.exception("Manual lead scan failed for user %s", user.id)
+        await refund_scan_slot(db, user.id, prev)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="The scan failed — please try again later.",
+        )
+    return {"created": created}
 
 
 def _to_lead_out(lead: JobLead) -> LeadOut:

@@ -23,6 +23,9 @@ const baseHook = {
   error: null,
   load: jest.fn(),
   setStatus: jest.fn(),
+  scan: jest.fn(),
+  scanning: false,
+  scanNotice: null,
 };
 
 const sampleLeads = [
@@ -102,5 +105,45 @@ describe("JobLeads page", () => {
     useLeads.mockReturnValue({ ...baseHook, error: new Error("500") });
     renderLeads();
     expect(screen.getByText(/500/)).toBeInTheDocument();
+  });
+
+  test("Scan now button triggers the manual scan", () => {
+    const scan = jest.fn();
+    useLeads.mockReturnValue({ ...baseHook, leads: sampleLeads, scan });
+    renderLeads();
+    fireEvent.click(screen.getByText("Scan now"));
+    expect(scan).toHaveBeenCalledTimes(1);
+  });
+
+  test("Scan now is disabled and relabeled while scanning", () => {
+    useLeads.mockReturnValue({
+      ...baseHook,
+      leads: sampleLeads,
+      scanning: true,
+    });
+    renderLeads();
+    const button = screen.getByText("Scanning…");
+    expect(button).toBeDisabled();
+  });
+
+  test("renders the scan notice from the hook", () => {
+    useLeads.mockReturnValue({
+      ...baseHook,
+      leads: sampleLeads,
+      scanNotice: "Clara already scanned for you in the last 24 hours.",
+    });
+    renderLeads();
+    expect(screen.getByText(/last 24 hours/)).toBeInTheDocument();
+  });
+
+  test("empty state offers a Scan now button too", () => {
+    const scan = jest.fn();
+    useLeads.mockReturnValue({ ...baseHook, leads: [], scan });
+    renderLeads();
+    // One in the run card, one in the empty state
+    const buttons = screen.getAllByText("Scan now");
+    expect(buttons).toHaveLength(2);
+    fireEvent.click(buttons[1]);
+    expect(scan).toHaveBeenCalledTimes(1);
   });
 });

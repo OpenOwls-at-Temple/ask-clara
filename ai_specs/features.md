@@ -41,9 +41,9 @@ Each feature includes a short description and a set of acceptance criteria writt
 **Acceptance Criteria:**
 - [x] Given I am on the intake page, when I upload a PDF or DOCX resume, then its text is parsed and stored and I see a confirmation.
 - [x] Given I provide a LinkedIn profile (URL, exported PDF, or a CSV from LinkedIn's data export), when I submit it, then the relevant content is captured and stored with my profile. *(CSV accepted 2026-07-14 — LinkedIn's "Get a copy of your data" download is a ZIP of CSVs, not a PDF.)*
-- [x] Given the questionnaire, when I answer it, then I can record my major/program, degree level (undergrad / grad / PhD), intended track (industry / academia / government / undecided), and graduation timeline.
-- [x] Given the "dream job" question, when I respond, then I can enter **three** target roles **ranked** by preference (1–3).
-- [x] Given I leave and return, when I reopen intake, then my previous answers are pre-filled and editable.
+- [x] Given the questionnaire, when I answer it, then I must record my major/program, degree level (undergrad / grad / PhD), intended track (industry / academia / government / undecided), and graduation timeline — all required to save. *(Required as of 2026-07-16; only the first-gen checkbox stays optional. Partial saves previously produced "incomplete" profiles that blocked every downstream service.)*
+- [x] Given the "dream job" question, when I respond, then I must enter all **three** target roles **ranked** by preference (1–3) before the questionnaire saves (enforced client-side and server-side).
+- [x] Given I leave and return, when I reopen intake, then my previous answers are pre-filled and editable. Completed sections (Background & Goals, Resume, LinkedIn) collapse into summary cards with a green check and an Edit button; the LinkedIn section is optional.
 
 ---
 
@@ -110,6 +110,7 @@ Each feature includes a short description and a set of acceptance criteria writt
 - [x] Given matched leads, when I view them, then they are prioritized by fit to my ranked preferences.
 - [x] Given new matches, when they appear, then I receive a notification (in-app and/or email) with the job link. *(In-app: new-lead badge on the NavBar and Dashboard; email deferred by decision 2026-07-10.)*
 - [x] Given a lead, when I open it, then I see why Clara thinks it fits me.
+- [x] Given the Job Leads page, when I click "Scan now", then Clara scans just my profile on demand — allowed at most once per rolling 24 hours per student (in addition to the nightly scan; added 2026-07-16).
 
 ---
 
