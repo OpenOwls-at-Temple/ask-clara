@@ -15,8 +15,9 @@
 ## Status Summary
 
 Features 1–5 (Phase 1 MVP) are implemented and deployed to staging
-(https://ask-clara-zeta.vercel.app). Phase 2 is underway: Features 6 (development plan) and
-7 (job leads scanning & alerts) are shipped and browser-verified. Feature 8 is next.
+(https://ask-clara-zeta.vercel.app). Phase 2 is underway: Features 6 (development plan),
+7 (job leads scanning & alerts), and 8 (posting-tailored materials) are shipped and live.
+Feature 9 (interview prep guidance) is next.
 
 ---
 
@@ -50,17 +51,19 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-10 — Spec-sync rule: spec deltas ship in the same PR as the code change; known drift never merges (PR #18)
 - [x] 2026-07-11 — Progress/ops hygiene: `progress.md` condensed to 2–3-line entries (narrative moved to `docs/progress-archive.md`), testing convention re-scoped to behavior coverage, Ops & Monitoring section added to `llm-integration.md` (`docs/progress-and-ops-hygiene`)
 - [x] 2026-07-11 — Feature 7: job leads scanning & alerts — curated Greenhouse/Lever board scan (GitHub Actions cron → secret-gated trigger), keyword pre-filter + batched job-match agent, fit-ranked `JobLeads.jsx` with in-app new-lead badges; migration `473b757cc096` on staging + local; browser-verified (PR #20)
+- [x] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — posting-materials agent (fit summary + tailored docs, structured outputs), SSRF-guarded posting fetch from a pasted link (JSON-LD extraction) with manual-entry fallback, `posting_materials` Mongo collection, quota-gated `/api/materials*` + `/api/leads/:id/materials` routes, `Materials.jsx` + "Tailor materials" on leads; SSRF/PII-leak review fixes + SNI fetch fix; browser-verified (PR #25)
+- [x] 2026-07-14 — Intake fixes from user testing: LinkedIn upload accepts the CSVs LinkedIn's export actually produces (instructions now point at profile → More → Save to PDF), step-1 completion banner with "Continue to AI Assessment" and missing-items hints (LinkedIn optional); Feature 2 AC wording synced in `features.md`; browser-verified (PR #25)
 - [x] 2026-07-15 — Architecture-review fixes: PDF/DOCX parsing moved to `document_parser_service`, cross-DB write consistency centralized in `profile_service.upsert_{resume,linkedin}_with_consistency`, PII address regex hardened for multi-word street names; new tests for orchestrator PII stripping, LLM retry/fallback, parser, and Mongo compensation (PR #21)
 - [x] 2026-07-15 — Frontend data-layer test coverage: Jest `import.meta.env` transform (babel-plugin-transform-vite-meta-env, test-env only), 86 new tests across all 6 API services, all 6 hooks, and SignIn/Dashboard/Resumes pages (`test/frontend-unit-tests`)
 - [x] 2026-07-15 — Playwright E2E critical path: sign-in → intake → resume upload → assessment → resume generation against `LLM_PROVIDER=mock` (no-network canned provider, local-only guard) + triple-gated `POST /auth/test-login`; new `e2e` CI job with trace artifacts; specs synced (auth-security, llm-integration, CLAUDE.md) (`feature/e2e-critical-path`)
+- [x] 2026-07-15 — Typst resume PDFs (adapted from the PI's career-ops template): `resume_pdf.py` renders one-page PDFs (auto-shrinks 11pt → 9pt), PDF is now the default for `GET /api/resumes/:id/download` (`?format=docx` kept) plus `GET /api/materials/:id/resume/download`; inline Typst-rendered PNG previews (`?format=png`), no job title in the header (student name only); new dep: `typst`; browser-verified (PR #25)
+- [x] 2026-07-16 — Local test-login UI: dev-build-only form on `SignIn.jsx` against the existing `POST /auth/test-login` seam, `testLogin` in `services/auth.js`, `VITE_TEST_LOGIN_SECRET` env var, README setup docs; browser-verified (`feature/local-test-login`)
 
 ---
 
 ## In Progress
 
-- [ ] 2026-07-13 — Feature 8: per-posting resume + cover letter + employer brief — backend routes, mongo collection, posting-materials agent, UI. Awaiting browser verification.
-- [ ] 2026-07-14 — Intake fixes from user testing: LinkedIn CSV upload, UI completion banner. Awaiting browser verification.
-- [ ] 2026-07-15 — Typst resume PDFs: PDF rendering via typst, PNG image previews inline, UI updates. Awaiting browser verification.
+_Nothing currently in progress._
 
 ---
 
@@ -75,7 +78,7 @@ Full narrative in `docs/progress-archive.md`.
 
 ## Up Next
 
-- [ ] Feature 8: per-posting resume + cover letter + employer brief (next Phase 2 feature)
+- [ ] Feature 9: interview prep guidance (last Phase 2 feature)
 - [ ] Before the first scheduled scan: set `SCAN_TRIGGER_SECRET` in Render and `BACKEND_URL` + `SCAN_TRIGGER_SECRET` in GitHub repository secrets (owner-managed)
 - [ ] Before pilot launch: publish the Google OAuth consent screen to production (Testing mode caps sign-ins at 100 allowlisted test users — see `docs/onboarding.md` §1.2)
 - [ ] Before pilot launch: stand up the daily ops check (spend/quota/error review — see `ai_specs/llm-integration.md` → Ops & Monitoring)
