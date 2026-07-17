@@ -1596,3 +1596,56 @@ body {
   padding: var(--s4) var(--s5);
   border-top: 1px solid var(--bone);
 }
+
+/* How It Works (tutorial) */
+.hiw-intro {
+  color: var(--mist);
+  font-size: 0.9375rem;
+  margin: var(--s3) 0 var(--s7);
+}
+
+.hiw-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  margin-bottom: var(--s8);
+}
+
+.hiw-step {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  background: var(--white);
+  border-radius: 6px;
+  border: 1.5px solid var(--bone);
+  padding: var(--s5) var(--s6);
+  box-shadow: var(--shadow-xs);
+}
+
+.hiw-step-num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--cherry);
+  color: var(--white);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hiw-step-body {
+  flex: 1;
+}
+
+.hiw-step .card-icon,
+.hiw-step .badge {
+  flex-shrink: 0;
+}
+
+.dashboard-help-link {
+  margin-top: var(--s3);
+}

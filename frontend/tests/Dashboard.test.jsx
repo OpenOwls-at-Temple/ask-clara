@@ -30,6 +30,10 @@ jest.mock("../src/services/materials", () => ({
   listMaterials: jest.fn(),
 }));
 jest.mock("../src/components/NavBar", () => () => <nav />);
+jest.mock("../src/utils/tutorial", () => ({
+  hasSeenTutorial: jest.fn(),
+  markTutorialSeen: jest.fn(),
+}));
 
 const { useAuth } = require("../src/hooks/useAuth");
 const { useProfile } = require("../src/hooks/useProfile");
@@ -38,6 +42,7 @@ const { listAssessments } = require("../src/services/assessment");
 const { listResumes } = require("../src/services/documents");
 const { getPlan } = require("../src/services/plan");
 const { listMaterials } = require("../src/services/materials");
+const { hasSeenTutorial, markTutorialSeen } = require("../src/utils/tutorial");
 
 const completeProfile = {
   resume_doc_id: "doc-1",
@@ -51,6 +56,7 @@ async function renderDashboard() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/intake" element={<div>INTAKE PROBE</div>} />
         <Route path="/assessment" element={<div>ASSESSMENT PROBE</div>} />
+        <Route path="/how-it-works" element={<div>TUTORIAL PROBE</div>} />
       </Routes>
     </MemoryRouter>,
   );
@@ -63,6 +69,7 @@ describe("Dashboard page", () => {
   beforeEach(() => {
     useAuth.mockReturnValue({ user: { display_name: "Jane Doe" } });
     listLeads.mockResolvedValue([]);
+    hasSeenTutorial.mockReturnValue(true);
     listAssessments.mockResolvedValue([]);
     listResumes.mockResolvedValue([]);
     getPlan.mockResolvedValue(null);
@@ -156,6 +163,49 @@ describe("Dashboard page", () => {
 
     expect(screen.getByText("Hello, Jane")).toBeInTheDocument();
     expect(screen.getByText("Up to date")).toBeInTheDocument();
+  });
+
+  test("welcome header links to the tutorial page", async () => {
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    await renderDashboard();
+
+    fireEvent.click(screen.getByText("✨ How Clara works →"));
+    expect(screen.getByText("TUTORIAL PROBE")).toBeInTheDocument();
+  });
+
+  test("first visit with an incomplete profile redirects to the tutorial once", async () => {
+    hasSeenTutorial.mockReturnValue(false);
+    useProfile.mockReturnValue({ profile: null, loading: false });
+    await renderDashboard();
+
+    expect(screen.getByText("TUTORIAL PROBE")).toBeInTheDocument();
+    expect(markTutorialSeen).toHaveBeenCalledTimes(1);
+  });
+
+  test("no tutorial redirect when already seen", async () => {
+    useProfile.mockReturnValue({ profile: null, loading: false });
+    await renderDashboard();
+
+    expect(screen.queryByText("TUTORIAL PROBE")).not.toBeInTheDocument();
+    expect(markTutorialSeen).not.toHaveBeenCalled();
+  });
+
+  test("no tutorial redirect when the profile is complete", async () => {
+    hasSeenTutorial.mockReturnValue(false);
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    await renderDashboard();
+
+    expect(screen.queryByText("TUTORIAL PROBE")).not.toBeInTheDocument();
+    expect(markTutorialSeen).not.toHaveBeenCalled();
+  });
+
+  test("no tutorial redirect while the profile is still loading", async () => {
+    hasSeenTutorial.mockReturnValue(false);
+    useProfile.mockReturnValue({ profile: null, loading: true });
+    await renderDashboard();
+
+    expect(screen.queryByText("TUTORIAL PROBE")).not.toBeInTheDocument();
+    expect(markTutorialSeen).not.toHaveBeenCalled();
   });
 
   test.each([

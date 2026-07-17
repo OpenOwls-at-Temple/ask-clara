@@ -8,6 +8,7 @@ import { listAssessments } from "../services/assessment";
 import { listResumes } from "../services/documents";
 import { getPlan } from "../services/plan";
 import { listMaterials } from "../services/materials";
+import { hasSeenTutorial, markTutorialSeen } from "../utils/tutorial";
 import NavBar from "../components/NavBar";
 import FirstGenResources from "../components/FirstGenResources";
 
@@ -48,6 +49,13 @@ export default function Dashboard() {
   const hasLinkedIn = Boolean(profile?.linkedin_doc_id);
   const roleCount = profile?.target_roles?.length ?? 0;
   const profileComplete = hasResume && roleCount === 3;
+
+  // First visit with an incomplete profile: show the tutorial once.
+  useEffect(() => {
+    if (loading || profileComplete || hasSeenTutorial()) return;
+    markTutorialSeen();
+    navigate("/how-it-works");
+  }, [loading, profileComplete, navigate]);
 
   // A card goes green once its feature has produced something at least once;
   // a failed fetch just leaves the card in its "Ready" state.
@@ -201,6 +209,12 @@ export default function Dashboard() {
               Here's your coaching progress. Complete each step to unlock
               AI-powered insights.
             </p>
+            <button
+              className="btn btn-ghost btn-sm dashboard-help-link"
+              onClick={() => navigate("/how-it-works")}
+            >
+              ✨ How Clara works →
+            </button>
           </div>
 
           {/* Progress cards */}

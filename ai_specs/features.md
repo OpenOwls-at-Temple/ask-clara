@@ -88,6 +88,8 @@ Each feature includes a short description and a set of acceptance criteria writt
 ## Phase 2 — Enhanced Features
 <!-- Defined after Phase 1 is stable. Development plans, job scanning, and per-posting tailoring. -->
 
+**Cross-cutting UX (2026-07-17):** onboarding tutorial at `/how-it-works` — a frontend-only walkthrough of the six steps (Features 2/4/5/6/7/8), auto-shown once to first-time students with an incomplete profile (localStorage flag) and always revisitable via the Dashboard welcome-header link.
+
 ### Feature 6: Personalized 6-Month Development Plan
 **As a** student,
 **I want** a roadmap of skills, experiences, and credentials to acquire,

@@ -3,7 +3,7 @@
 > **OpenOwls SDD** — Living status document. Update this file at the end of every work session.
 > Claude Code reads this first at the start of every new session to catch up on project state.
 >
-> **Entry format:** this file records *state* — current phase, what's done, what's blocked,
+> **Entry format:** this file records _state_ — current phase, what's done, what's blocked,
 > what's next. Keep each Completed entry to 2–3 lines with a PR link; implementation detail
 > belongs in the PR description and commit history, not here. When a phase completes, move its
 > entries to `docs/progress-archive.md` (full-length pre-2026-07-11 entries are already there).
@@ -60,7 +60,8 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-16 — Local test-login UI: dev-build-only form on `SignIn.jsx` against the existing `POST /auth/test-login` seam, `testLogin` in `services/auth.js`, `VITE_TEST_LOGIN_SECRET` env var, README setup docs; browser-verified (`feature/local-test-login`)
 - [x] 2026-07-16 — Intake required fields + collapsible sections: all questionnaire fields and all 3 ranked roles now required to save (client + `ProfileIn` schema); Resume and LinkedIn sections collapse to green-check summary cards via new `CollapsedSectionCard` (LinkedIn labeled optional); "(Beta Version)" added to the sign-in wordmark; Feature 2 ACs synced — awaiting browser verification
 - [x] 2026-07-16 — Manual job-leads scan: student-triggered `POST /api/leads/scan` (single-profile `lead_service.scan_for_user`), once per rolling 24h via `users.last_lead_scan_at` (atomic consume/refund slot, migration `b8e14f6a2c97`), "Scan now" button + notices on `JobLeads.jsx`; specs synced (Feature 7 AC, API table, users table) — awaiting browser verification
-- [x] 2026-07-17 — Dashboard polish from user testing: uploaded resume filename persisted (`profiles.resume_filename`, migration `e7a91c30f5d2`, sanitized) and shown in the Intake "Resume on file" cards; dashboard feature cards turn green once run at least once (existing GET endpoints, neutral "Loading…" state so revisits never flash red→green; leads card green when any leads exist); `is_first_gen` now returned by `GET /profile` (fixes checkbox never re-hydrating) and drives a static `FirstGenResources` panel on the dashboard (deterministic, never sent to the LLM — orchestrator regression test added); `profiles` table spec synced; browser-verified
+- [x] 2026-07-17 — Dashboard polish from user testing: uploaded resume filename persisted (`profiles.resume_filename`, migration `e7a91c30f5d2`, sanitized) and shown in the Intake "Resume on file" cards; dashboard feature cards turn green once run at least once (existing GET endpoints, neutral "Loading…" state so revisits never flash red→green; leads card green when any leads exist); `is_first_gen` now returned by `GET /profile` (fixes checkbox never re-hydrating) and drives a static `FirstGenResources` panel on the dashboard (deterministic, never sent to the LLM — orchestrator regression test added); `profiles` table spec synced; browser-verified (PR #29)
+- [x] 2026-07-17 — Onboarding tutorial ("How Clara works"): new `/how-it-works` page walking the six steps with profile-aware CTAs and step gating, Dashboard welcome-header link + one-time first-visit redirect (`utils/tutorial.js` localStorage flag); Jest + E2E coverage for the page, flag helper, and redirect; frontend-only, Phase 2 cross-cutting UX note added to `features.md`; browser-verified (PR #28)
 
 ---
 
@@ -72,10 +73,10 @@ _Nothing currently in progress._
 
 ## Blocked
 
-| Item | Reason | Owner |
-|------|--------|-------|
-| Production hosting URLs | Pilot deploy targets not finalized | Project team |
-| Career Center handoff details (Phase 3) | Partnership framework being defined with Dr. Gallo | PI |
+| Item                                    | Reason                                             | Owner        |
+| --------------------------------------- | -------------------------------------------------- | ------------ |
+| Production hosting URLs                 | Pilot deploy targets not finalized                 | Project team |
+| Career Center handoff details (Phase 3) | Partnership framework being defined with Dr. Gallo | PI           |
 
 ---
 
