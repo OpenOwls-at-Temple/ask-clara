@@ -60,6 +60,7 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-16 — Local test-login UI: dev-build-only form on `SignIn.jsx` against the existing `POST /auth/test-login` seam, `testLogin` in `services/auth.js`, `VITE_TEST_LOGIN_SECRET` env var, README setup docs; browser-verified (`feature/local-test-login`)
 - [x] 2026-07-16 — Intake required fields + collapsible sections: all questionnaire fields and all 3 ranked roles now required to save (client + `ProfileIn` schema); Resume and LinkedIn sections collapse to green-check summary cards via new `CollapsedSectionCard` (LinkedIn labeled optional); "(Beta Version)" added to the sign-in wordmark; Feature 2 ACs synced — awaiting browser verification
 - [x] 2026-07-16 — Manual job-leads scan: student-triggered `POST /api/leads/scan` (single-profile `lead_service.scan_for_user`), once per rolling 24h via `users.last_lead_scan_at` (atomic consume/refund slot, migration `b8e14f6a2c97`), "Scan now" button + notices on `JobLeads.jsx`; specs synced (Feature 7 AC, API table, users table) — awaiting browser verification
+- [x] 2026-07-17 — Onboarding tutorial ("How Clara works"): new `/how-it-works` page walking the six steps with profile-aware CTAs and step gating, Dashboard welcome-header link + one-time first-visit redirect (`utils/tutorial.js` localStorage flag); Jest coverage for the page, flag helper, and redirect; frontend-only, Phase 2 cross-cutting UX note added to `features.md` — awaiting browser verification
 
 ---
 

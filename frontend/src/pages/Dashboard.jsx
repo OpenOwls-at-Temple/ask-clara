@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { listLeads } from "../services/leads";
+import { hasSeenTutorial, markTutorialSeen } from "../utils/tutorial";
 import NavBar from "../components/NavBar";
 
 export default function Dashboard() {
@@ -30,6 +31,13 @@ export default function Dashboard() {
   const hasLinkedIn = Boolean(profile?.linkedin_doc_id);
   const roleCount = profile?.target_roles?.length ?? 0;
   const profileComplete = hasResume && roleCount === 3;
+
+  // First visit with an incomplete profile: show the tutorial once.
+  useEffect(() => {
+    if (loading || profileComplete || hasSeenTutorial()) return;
+    markTutorialSeen();
+    navigate("/how-it-works");
+  }, [loading, profileComplete, navigate]);
 
   const firstName = user?.display_name?.split(" ")[0] ?? "there";
 
@@ -151,6 +159,12 @@ export default function Dashboard() {
               Here's your coaching progress. Complete each step to unlock
               AI-powered insights.
             </p>
+            <button
+              className="btn btn-ghost btn-sm dashboard-help-link"
+              onClick={() => navigate("/how-it-works")}
+            >
+              ✨ How Clara works →
+            </button>
           </div>
 
           {/* Progress cards */}

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider, useAuth } from "./hooks/useAuth";
 import Assessment from "./pages/Assessment";
 import Dashboard from "./pages/Dashboard";
+import HowItWorks from "./pages/HowItWorks";
 import Intake from "./pages/Intake";
 import JobLeads from "./pages/JobLeads";
 import Materials from "./pages/Materials";
@@ -27,6 +28,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/how-it-works"
+          element={
+            <ProtectedRoute>
+              <HowItWorks />
             </ProtectedRoute>
           }
         />
