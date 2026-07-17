@@ -71,7 +71,9 @@ async def upsert_profile(
     return await get_profile(db, user_id)
 
 
-async def set_resume_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str) -> None:
+async def set_resume_doc_id(
+    db: AsyncSession, user_id: uuid.UUID, doc_id: str, filename: str | None = None
+) -> None:
     profile = await get_profile(db, user_id)
     if profile is None:
         profile = Profile(
@@ -81,6 +83,7 @@ async def set_resume_doc_id(db: AsyncSession, user_id: uuid.UUID, doc_id: str) -
         )
         db.add(profile)
     profile.resume_doc_id = doc_id
+    profile.resume_filename = filename
     profile.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await db.commit()
 
@@ -109,6 +112,7 @@ async def upsert_resume_with_consistency(
     raw_text: str,
     kind: str = "uploaded",
     structured_json: dict | None = None,
+    filename: str | None = None,
 ) -> str:
     """Store a resume document and link it to the user's profile.
 
@@ -130,7 +134,7 @@ async def upsert_resume_with_consistency(
         },
     )
     try:
-        await set_resume_doc_id(db, user_id, doc_id)
+        await set_resume_doc_id(db, user_id, doc_id, filename=filename)
     except Exception:
         await mongo["resumes"].delete_one({"_id": ObjectId(doc_id)})
         raise

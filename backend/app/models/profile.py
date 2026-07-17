@@ -36,6 +36,7 @@ class Profile(Base):
     track: Mapped[Track] = mapped_column(SAEnum(Track), default=Track.undecided)
     is_first_gen: Mapped[bool | None] = mapped_column(nullable=True)
     resume_doc_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    resume_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
     linkedin_doc_id: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

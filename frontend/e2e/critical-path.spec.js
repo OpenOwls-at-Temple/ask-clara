@@ -55,7 +55,10 @@ test("student signs in, completes intake, and generates an assessment", async ({
     .first()
     .setInputFiles(RESUME_FIXTURE);
   await page.getByRole("button", { name: "Upload Resume" }).click();
-  await expect(page.getByText("Resume on file")).toBeVisible();
+  // The collapsed card shows the uploaded filename.
+  await expect(
+    page.getByText(/synthetic-resume\.docx on file/),
+  ).toBeVisible();
 
   // Dashboard now shows a complete profile with unlocked AI cards.
   await page.goto("/dashboard");

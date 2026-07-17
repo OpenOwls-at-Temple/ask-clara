@@ -86,6 +86,8 @@ class ProfileOut(BaseModel):
     major_program: Optional[str]
     expected_graduation: Optional[date]
     track: str
+    is_first_gen: Optional[bool] = None
     resume_doc_id: Optional[str]
+    resume_filename: Optional[str] = None
     linkedin_doc_id: Optional[str]
     target_roles: list[TargetRoleOut]

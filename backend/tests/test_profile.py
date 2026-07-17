@@ -450,6 +450,102 @@ async def test_linkedin_upsert_deletes_mongo_doc_when_postgres_write_fails(monke
     )
 
 
+def test_sanitize_filename_strips_paths_and_control_chars():
+    from app.routes.profile import _sanitize_filename
+
+    assert _sanitize_filename("My Resume.pdf") == "My Resume.pdf"
+    assert _sanitize_filename("../evil/My Resume.pdf") == "My Resume.pdf"
+    assert _sanitize_filename("C:\\Users\\me\\resume.docx") == "resume.docx"
+    assert _sanitize_filename("bad\x00name\n.pdf") == "badname.pdf"
+    assert _sanitize_filename("a" * 300) == "a" * 255
+    assert _sanitize_filename("") is None
+    assert _sanitize_filename(None) is None
+    assert _sanitize_filename("dir/") is None
+
+
+@pytest.mark.asyncio
+async def test_resume_upload_stores_and_returns_filename(client, db_session):
+    """The original filename is persisted for display and echoed in the response."""
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from datetime import datetime
+    import uuid
+    from unittest.mock import AsyncMock, patch
+
+    user_id = uuid.uuid4()
+    db_session.add(
+        User(
+            id=user_id,
+            temple_email="fnameresume@temple.edu",
+            display_name="Filename Test",
+            role=UserRole.student,
+            created_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    with patch(
+        "app.routes.profile.profile_service.upsert_resume_with_consistency",
+        return_value="64a2b3c4d5e6f7890a1b2c3d",
+    ) as mock_upsert, patch(
+        "app.routes.profile.run_in_threadpool",
+        new=AsyncMock(return_value="Parsed resume text"),
+    ):
+        response = await client.post(
+            "/api/profile/resume",
+            files={"file": ("My Resume.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            headers=headers,
+        )
+
+    assert response.status_code == 200
+    assert response.json()["resume_filename"] == "My Resume.pdf"
+    assert mock_upsert.call_args.kwargs["filename"] == "My Resume.pdf"
+
+
+@pytest.mark.asyncio
+async def test_profile_out_includes_first_gen_and_resume_filename(client, db_session):
+    """is_first_gen and resume_filename must round-trip through GET /profile."""
+    from app.auth import create_access_token
+    from app.models.user import User, UserRole
+    from app.models.profile import Profile
+    from datetime import datetime
+    import uuid
+
+    user_id = uuid.uuid4()
+    db_session.add(
+        User(
+            id=user_id,
+            temple_email="firstgenout@temple.edu",
+            display_name="First Gen Out",
+            role=UserRole.student,
+            created_at=datetime.utcnow(),
+        )
+    )
+    await db_session.flush()
+    db_session.add(
+        Profile(
+            id=uuid.uuid4(),
+            user_id=user_id,
+            degree_level="undergrad",
+            major_program="Biology",
+            is_first_gen=True,
+            resume_doc_id="64a2b3c4d5e6f7890a1b2c3d",
+            resume_filename="My Resume.pdf",
+            updated_at=datetime.utcnow(),
+        )
+    )
+    await db_session.commit()
+
+    headers = {"Authorization": f"Bearer {create_access_token(str(user_id))}"}
+    response = await client.get("/api/profile", headers=headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["is_first_gen"] is True
+    assert body["resume_filename"] == "My Resume.pdf"
+
+
 @pytest.mark.asyncio
 async def test_linkedin_export_upload_rejects_invalid_type(client, db_session):
     from app.auth import create_access_token
