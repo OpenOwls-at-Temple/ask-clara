@@ -27,10 +27,15 @@ test("student signs in, completes intake, and generates an assessment", async ({
   });
   expect(login.ok()).toBeTruthy();
 
-  // Session restore from the refresh cookie lands on the dashboard.
+  // Session restore from the refresh cookie lands on the dashboard, which
+  // sends a first-time student with an incomplete profile to the tutorial
+  // exactly once.
   await page.goto("/");
+  await expect(page).toHaveURL(/\/how-it-works/);
+  await expect(page.getByText("How Clara works")).toBeVisible();
+  await page.getByRole("button", { name: "← Dashboard" }).click();
   await expect(page.getByText("Hello, E2E")).toBeVisible();
-  await expect(page.getByText("Incomplete")).toBeVisible();
+  await expect(page.getByText("Incomplete", { exact: true })).toBeVisible();
 
   // Intake: questionnaire.
   await page.goto("/intake");
@@ -57,9 +62,10 @@ test("student signs in, completes intake, and generates an assessment", async ({
   await page.getByRole("button", { name: "Upload Resume" }).click();
   await expect(page.getByText("Resume on file")).toBeVisible();
 
-  // Dashboard now shows a complete profile with unlocked AI cards.
+  // Dashboard now shows a complete profile with unlocked AI cards. The
+  // subtitle also contains the word "Complete", so match the badge exactly.
   await page.goto("/dashboard");
-  await expect(page.getByText("Complete")).toBeVisible();
+  await expect(page.getByText("Complete", { exact: true })).toBeVisible();
   await expect(page.getByText("Ready").first()).toBeVisible();
 
   // Assessment: run against the deterministic mock provider.
