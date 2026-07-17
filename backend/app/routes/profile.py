@@ -30,6 +30,16 @@ _LINKEDIN_ALLOWED_MIME = _ALLOWED_MIME | {
 _MAX_FILE_BYTES = 5 * 1024 * 1024  # 5 MB
 
 
+def _sanitize_filename(filename: str | None) -> str | None:
+    """Reduce a client-supplied filename to a safe display string."""
+    if not filename:
+        return None
+    # Browsers may send a full path; keep only the last segment.
+    name = filename.replace("\\", "/").rsplit("/", 1)[-1]
+    name = "".join(c for c in name if c.isprintable()).strip()
+    return name[:255] or None
+
+
 def _profile_out(profile: Profile) -> ProfileOut:
     return ProfileOut(
         id=str(profile.id),
@@ -38,7 +48,9 @@ def _profile_out(profile: Profile) -> ProfileOut:
         major_program=profile.major_program,
         expected_graduation=profile.expected_graduation,
         track=profile.track.value,
+        is_first_gen=profile.is_first_gen,
         resume_doc_id=profile.resume_doc_id,
+        resume_filename=profile.resume_filename,
         linkedin_doc_id=profile.linkedin_doc_id,
         target_roles=[
             TargetRoleOut(id=str(r.id), rank=r.rank, title=r.title, notes=r.notes)
@@ -128,10 +140,15 @@ async def upload_resume(
     db: AsyncSession = Depends(get_db),
 ):
     raw_text = await _read_and_parse_upload(file)
+    resume_filename = _sanitize_filename(file.filename)
     doc_id = await profile_service.upsert_resume_with_consistency(
-        db, get_mongo_db(), user.id, raw_text=raw_text
+        db, get_mongo_db(), user.id, raw_text=raw_text, filename=resume_filename
     )
-    return {"resume_doc_id": doc_id, "preview": raw_text[:300]}
+    return {
+        "resume_doc_id": doc_id,
+        "resume_filename": resume_filename,
+        "preview": raw_text[:300],
+    }
 
 
 class LinkedInRequest(BaseModel):

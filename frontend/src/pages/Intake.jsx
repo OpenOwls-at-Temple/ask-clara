@@ -459,7 +459,11 @@ export default function Intake() {
             {resumeCollapsed ? (
               <CollapsedSectionCard
                 title="Resume"
-                summary="Resume on file — click Edit to replace it"
+                summary={
+                  profile?.resume_filename
+                    ? `${profile.resume_filename} on file — click Edit to replace it`
+                    : "Resume on file — click Edit to replace it"
+                }
                 onEdit={() => setResumeCollapsed(false)}
               />
             ) : (
@@ -530,7 +534,7 @@ export default function Intake() {
                           color: "var(--ink)",
                         }}
                       >
-                        Resume on file
+                        {profile?.resume_filename ?? "Resume on file"}
                       </div>
                       <div
                         style={{ fontSize: "0.75rem", color: "var(--mist)" }}
