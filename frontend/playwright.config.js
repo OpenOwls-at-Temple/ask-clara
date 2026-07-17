@@ -13,10 +13,22 @@ export default defineConfig({
   reporter: process.env.CI ? [["html", { open: "never" }]] : "list",
   // CI runners cold-compile the Vite module graph on first request; give
   // assertions more headroom than the 5s default.
-  expect: { timeout: 15_000 },
+  expect: {
+    timeout: 15_000,
+    // Visual-regression defaults: disable animations and hide the text caret so
+    // snapshots are deterministic, and allow a tiny per-pixel tolerance for
+    // sub-pixel font antialiasing between runs on the same platform.
+    toHaveScreenshot: {
+      maxDiffPixelRatio: 0.01,
+      animations: "disabled",
+      caret: "hide",
+    },
+  },
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
+    // Pin the viewport so screenshot baselines are stable across machines/CI.
+    viewport: { width: 1280, height: 800 },
   },
   // Both servers are started fresh so the backend is guaranteed to run with
   // the mock LLM provider and the test-login secret — never reuse a dev
