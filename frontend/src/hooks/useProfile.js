@@ -40,7 +40,11 @@ export function useProfile() {
 
   async function saveResume(file) {
     const data = await uploadResume(file);
-    setProfile((prev) => ({ ...prev, resume_doc_id: data.resume_doc_id }));
+    setProfile((prev) => ({
+      ...prev,
+      resume_doc_id: data.resume_doc_id,
+      resume_filename: data.resume_filename,
+    }));
     return data;
   }
 

@@ -282,6 +282,38 @@ describe("Intake — Resume section", () => {
     ).toBeInTheDocument();
   });
 
+  test("collapsed summary shows the stored filename when available", () => {
+    renderIntake({
+      profile: {
+        ...savedProfile,
+        resume_doc_id: "mongo-id-abc",
+        resume_filename: "My Resume.pdf",
+      },
+    });
+    expect(
+      screen.getByText("My Resume.pdf on file — click Edit to replace it"),
+    ).toBeInTheDocument();
+  });
+
+  test("expanded tile shows the stored filename in place of the generic label", () => {
+    renderIntake({
+      profile: {
+        ...savedProfile,
+        resume_doc_id: "mongo-id-abc",
+        resume_filename: "My Resume.pdf",
+      },
+    });
+    const resumeCard = screen
+      .getByText(/My Resume\.pdf on file/)
+      .closest(".form-card");
+    fireEvent.click(within(resumeCard).getByText("Edit"));
+    expect(screen.getByText("My Resume.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("Resume on file")).toBeNull();
+    expect(
+      screen.getByText("Select a new file below to replace it"),
+    ).toBeInTheDocument();
+  });
+
   test("does NOT collapse the Resume section when profile has no resume_doc_id", () => {
     renderIntake({ profile: { ...savedProfile, resume_doc_id: null } });
     expect(screen.queryByText(/Resume on file/)).toBeNull();

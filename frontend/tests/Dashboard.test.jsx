@@ -17,6 +17,18 @@ jest.mock("../src/hooks/useProfile", () => ({
 jest.mock("../src/services/leads", () => ({
   listLeads: jest.fn(),
 }));
+jest.mock("../src/services/assessment", () => ({
+  listAssessments: jest.fn(),
+}));
+jest.mock("../src/services/documents", () => ({
+  listResumes: jest.fn(),
+}));
+jest.mock("../src/services/plan", () => ({
+  getPlan: jest.fn(),
+}));
+jest.mock("../src/services/materials", () => ({
+  listMaterials: jest.fn(),
+}));
 jest.mock("../src/components/NavBar", () => () => <nav />);
 jest.mock("../src/utils/tutorial", () => ({
   hasSeenTutorial: jest.fn(),
@@ -26,6 +38,10 @@ jest.mock("../src/utils/tutorial", () => ({
 const { useAuth } = require("../src/hooks/useAuth");
 const { useProfile } = require("../src/hooks/useProfile");
 const { listLeads } = require("../src/services/leads");
+const { listAssessments } = require("../src/services/assessment");
+const { listResumes } = require("../src/services/documents");
+const { getPlan } = require("../src/services/plan");
+const { listMaterials } = require("../src/services/materials");
 const { hasSeenTutorial, markTutorialSeen } = require("../src/utils/tutorial");
 
 const completeProfile = {
@@ -54,6 +70,10 @@ describe("Dashboard page", () => {
     useAuth.mockReturnValue({ user: { display_name: "Jane Doe" } });
     listLeads.mockResolvedValue([]);
     hasSeenTutorial.mockReturnValue(true);
+    listAssessments.mockResolvedValue([]);
+    listResumes.mockResolvedValue([]);
+    getPlan.mockResolvedValue(null);
+    listMaterials.mockResolvedValue([]);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -186,5 +206,84 @@ describe("Dashboard page", () => {
 
     expect(screen.queryByText("TUTORIAL PROBE")).not.toBeInTheDocument();
     expect(markTutorialSeen).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["assessment", () => listAssessments.mockResolvedValue([{ id: "a1" }])],
+    ["resumes", () => listResumes.mockResolvedValue([{ id: "r1" }])],
+    ["plan", () => getPlan.mockResolvedValue({ id: "p1" })],
+    ["materials", () => listMaterials.mockResolvedValue([{ id: "m1" }])],
+  ])(
+    "the %s card turns green once the feature has been run",
+    async (_, arm) => {
+      useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+      arm();
+      await renderDashboard();
+
+      // Profile card + the one run feature card
+      await waitFor(() =>
+        expect(screen.getAllByText("Complete")).toHaveLength(2),
+      );
+      expect(screen.getAllByText("Ready")).toHaveLength(3);
+    },
+  );
+
+  test("the leads card goes green when any leads exist, even none new", async () => {
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    listLeads.mockResolvedValue([{ status: "seen" }, { status: "applied" }]);
+    const { container } = await renderDashboard();
+
+    // Profile card + leads card carry the complete styling
+    await waitFor(() =>
+      expect(container.querySelectorAll(".card-complete")).toHaveLength(2),
+    );
+    expect(screen.getByText("Up to date")).toBeInTheDocument();
+  });
+
+  test("feature cards show Loading — never red — while run checks are in flight", async () => {
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    listLeads.mockReturnValue(new Promise(() => {}));
+    listAssessments.mockReturnValue(new Promise(() => {}));
+    listResumes.mockReturnValue(new Promise(() => {}));
+    getPlan.mockReturnValue(new Promise(() => {}));
+    listMaterials.mockReturnValue(new Promise(() => {}));
+    const { container } = await renderDashboard();
+
+    expect(screen.getAllByText("Loading…")).toHaveLength(5);
+    expect(screen.queryByText("Ready")).toBeNull();
+    expect(container.querySelector(".icon-cherry")).toBeNull();
+  });
+
+  test("artifact fetch failures leave the cards in their Ready state", async () => {
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    listAssessments.mockRejectedValue(new Error("500"));
+    listResumes.mockRejectedValue(new Error("500"));
+    getPlan.mockRejectedValue(new Error("500"));
+    listMaterials.mockRejectedValue(new Error("500"));
+    await renderDashboard();
+
+    expect(screen.getAllByText("Ready")).toHaveLength(4);
+  });
+
+  test("artifact endpoints are not called while the profile is incomplete", async () => {
+    useProfile.mockReturnValue({ profile: null, loading: false });
+    await renderDashboard();
+
+    expect(listAssessments).not.toHaveBeenCalled();
+    expect(getPlan).not.toHaveBeenCalled();
+  });
+
+  test("shows the first-gen resources panel only for first-gen students", async () => {
+    useProfile.mockReturnValue({
+      profile: { ...completeProfile, is_first_gen: true },
+      loading: false,
+    });
+    const { unmount } = await renderDashboard();
+    expect(screen.getByText("First-Generation Resources")).toBeInTheDocument();
+    unmount();
+
+    useProfile.mockReturnValue({ profile: completeProfile, loading: false });
+    await renderDashboard();
+    expect(screen.queryByText("First-Generation Resources")).toBeNull();
   });
 });

@@ -93,8 +93,9 @@ clara/
 | `major_program` | String | Major or program |
 | `expected_graduation` | Date | Graduation timeline |
 | `track` | Enum | `industry`, `academia`, `government`, `undecided` |
-| `is_first_gen` | Boolean (optional, self-reported) | For prioritized outreach; never required |
+| `is_first_gen` | Boolean (optional, self-reported) | For prioritized outreach and an in-app first-gen resources panel; never required, never sent to the LLM |
 | `resume_doc_id` | String | Reference to MongoDB resume document |
+| `resume_filename` | String (nullable) | Original uploaded filename, sanitized, for display only |
 | `linkedin_doc_id` | String | Reference to MongoDB LinkedIn extract |
 | `updated_at` | DateTime | Last update (UTC) |
 

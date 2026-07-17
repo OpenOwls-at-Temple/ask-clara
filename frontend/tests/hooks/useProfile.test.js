@@ -57,7 +57,10 @@ describe("useProfile", () => {
 
   test("saveResume merges resume_doc_id into the existing profile", async () => {
     svc.getProfile.mockResolvedValue({ id: "p1" });
-    svc.uploadResume.mockResolvedValue({ resume_doc_id: "doc-1" });
+    svc.uploadResume.mockResolvedValue({
+      resume_doc_id: "doc-1",
+      resume_filename: "resume.pdf",
+    });
     const { result } = renderHook(() => useProfile());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -70,6 +73,7 @@ describe("useProfile", () => {
     expect(result.current.profile).toEqual({
       id: "p1",
       resume_doc_id: "doc-1",
+      resume_filename: "resume.pdf",
     });
   });
 

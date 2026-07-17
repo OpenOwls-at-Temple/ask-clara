@@ -4,24 +4,42 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useProfile } from "../hooks/useProfile";
 import { listLeads } from "../services/leads";
+import { listAssessments } from "../services/assessment";
+import { listResumes } from "../services/documents";
+import { getPlan } from "../services/plan";
+import { listMaterials } from "../services/materials";
 import { hasSeenTutorial, markTutorialSeen } from "../utils/tutorial";
 import NavBar from "../components/NavBar";
+import FirstGenResources from "../components/FirstGenResources";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { profile, loading } = useProfile();
   const navigate = useNavigate();
   const [newLeadCount, setNewLeadCount] = useState(0);
+  const [leadCount, setLeadCount] = useState(0);
+  const [hasRun, setHasRun] = useState({
+    assessment: false,
+    resumes: false,
+    plan: false,
+    materials: false,
+  });
+  const [artifactsReady, setArtifactsReady] = useState(false);
+  const [leadsReady, setLeadsReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     listLeads()
       .then((leads) => {
         if (!cancelled) {
+          setLeadCount(leads.length);
           setNewLeadCount(leads.filter((l) => l.status === "new").length);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLeadsReady(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -39,7 +57,62 @@ export default function Dashboard() {
     navigate("/how-it-works");
   }, [loading, profileComplete, navigate]);
 
+  // A card goes green once its feature has produced something at least once;
+  // a failed fetch just leaves the card in its "Ready" state.
+  useEffect(() => {
+    if (loading || !profileComplete) return;
+    let cancelled = false;
+    Promise.allSettled([
+      listAssessments(),
+      listResumes(),
+      getPlan(),
+      listMaterials(),
+    ]).then(([assessments, resumes, plan, materials]) => {
+      if (cancelled) return;
+      setHasRun({
+        assessment:
+          assessments.status === "fulfilled" && assessments.value.length > 0,
+        resumes: resumes.status === "fulfilled" && resumes.value.length > 0,
+        plan: plan.status === "fulfilled" && plan.value != null,
+        materials:
+          materials.status === "fulfilled" && materials.value.length > 0,
+      });
+      setArtifactsReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, profileComplete]);
+
   const firstName = user?.display_name?.split(" ")[0] ?? "there";
+
+  // Feature cards stay in a neutral loading state until their run-at-least-once
+  // check resolves, so a revisit never flashes red before turning green.
+  const featureCardState = (ran, fetching) => {
+    if (loading || (profileComplete && fetching)) {
+      return { status: "pending", badgeLabel: "Loading…", iconClass: "" };
+    }
+    if (!profileComplete) {
+      return {
+        status: "locked",
+        badgeLabel: "Profile required",
+        iconClass: "",
+      };
+    }
+    return ran
+      ? {
+          status: "complete",
+          badgeLabel: "Complete",
+          iconClass: "icon-success",
+        }
+      : { status: "active", badgeLabel: "Ready", iconClass: "icon-cherry" };
+  };
+
+  const leadsState = featureCardState(leadCount > 0, !leadsReady);
+  if (leadsState.status === "complete" || leadsState.status === "active") {
+    leadsState.badgeLabel =
+      newLeadCount > 0 ? `${newLeadCount} new` : "Up to date";
+  }
 
   const cards = [
     {
@@ -60,11 +133,9 @@ export default function Dashboard() {
     {
       key: "assessment",
       icon: "🧠",
-      iconClass: profileComplete ? "icon-cherry" : "",
       title: "AI Assessment",
       desc: "Clara reviews your profile against your target roles to find strengths, gaps, and next steps.",
-      status: !profileComplete ? "locked" : "active",
-      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      ...featureCardState(hasRun.assessment, !artifactsReady),
       action: "View / Run",
       onAction: () => navigate("/assessment"),
       locked: !profileComplete,
@@ -72,11 +143,9 @@ export default function Dashboard() {
     {
       key: "resumes",
       icon: "📄",
-      iconClass: profileComplete ? "icon-cherry" : "",
       title: "Tailored Resumes",
       desc: "Generate a customized resume for each of your target roles.",
-      status: !profileComplete ? "locked" : "active",
-      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      ...featureCardState(hasRun.resumes, !artifactsReady),
       action: "View / Generate",
       onAction: () => navigate("/resumes"),
       locked: !profileComplete,
@@ -84,11 +153,9 @@ export default function Dashboard() {
     {
       key: "plan",
       icon: "🗺️",
-      iconClass: profileComplete ? "icon-cherry" : "",
       title: "Development Plan",
       desc: "A 6-month roadmap of skills, experiences, and credentials to reach your target roles.",
-      status: !profileComplete ? "locked" : "active",
-      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      ...featureCardState(hasRun.plan, !artifactsReady),
       action: "View / Generate",
       onAction: () => navigate("/plan"),
       locked: !profileComplete,
@@ -96,24 +163,9 @@ export default function Dashboard() {
     {
       key: "leads",
       icon: "🔍",
-      iconClass:
-        newLeadCount > 0
-          ? "icon-success"
-          : profileComplete
-            ? "icon-cherry"
-            : "",
       title: "Job Leads",
       desc: "Postings Clara matched to your target roles, with a note on why each one fits.",
-      status: !profileComplete
-        ? "locked"
-        : newLeadCount > 0
-          ? "complete"
-          : "active",
-      badgeLabel: !profileComplete
-        ? "Profile required"
-        : newLeadCount > 0
-          ? `${newLeadCount} new`
-          : "Up to date",
+      ...leadsState,
       action: "View Leads",
       onAction: () => navigate("/leads"),
       locked: !profileComplete,
@@ -121,11 +173,9 @@ export default function Dashboard() {
     {
       key: "materials",
       icon: "✉️",
-      iconClass: profileComplete ? "icon-cherry" : "",
       title: "Application Materials",
       desc: "A tailored resume, cover letter, and employer brief for any specific job posting.",
-      status: !profileComplete ? "locked" : "active",
-      badgeLabel: !profileComplete ? "Profile required" : "Ready",
+      ...featureCardState(hasRun.materials, !artifactsReady),
       action: "Tailor to a Posting",
       onAction: () => navigate("/materials"),
       locked: !profileComplete,
@@ -245,6 +295,8 @@ export default function Dashboard() {
               </button>
             </div>
           )}
+
+          {!loading && profile?.is_first_gen && <FirstGenResources />}
         </div>
       </div>
     </>

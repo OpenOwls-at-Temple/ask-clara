@@ -9,6 +9,8 @@ from app.llm.orchestrator import (
     build_assessment_context,
     build_job_match_context,
     build_plan_context,
+    build_posting_materials_context,
+    build_resume_context,
     strip_contact_block,
     trim_resume_text,
 )
@@ -125,3 +127,28 @@ def test_build_job_match_context_sends_only_posting_metadata():
             "location": "Malvern, PA",
         }
     ]
+
+
+def test_no_context_builder_leaks_first_gen_status():
+    """Self-reported first-gen status must never reach the LLM (auth-security.md)."""
+    profile = {
+        "degree_level": "undergrad",
+        "major_program": "Computer Science",
+        "track": "industry",
+        "expected_graduation": None,
+        "is_first_gen": True,
+        "target_roles": [{"rank": 1, "title": "Software Engineer"}],
+    }
+    assessment = {"strengths": [], "gaps": [], "recommendations": []}
+    posting = {"title": "SWE", "employer": "Acme", "location": "PA", "description": ""}
+    contexts = [
+        build_assessment_context(profile, "resume text", None),
+        build_plan_context(profile, assessment),
+        build_job_match_context(profile, [posting]),
+        build_posting_materials_context(profile, {"summary": "x"}, None, posting),
+        build_resume_context(
+            profile, {"summary": "x"}, None, {"rank": 1, "title": "SWE"}
+        ),
+    ]
+    for ctx in contexts:
+        assert "first_gen" not in repr(ctx)
