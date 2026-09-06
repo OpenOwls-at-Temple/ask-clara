@@ -8,6 +8,7 @@ import { listAssessments } from "../services/assessment";
 import { listResumes } from "../services/documents";
 import { getPlan } from "../services/plan";
 import { listMaterials } from "../services/materials";
+import { listInterviewPreps } from "../services/interviewPrep";
 import { hasSeenTutorial, markTutorialSeen } from "../utils/tutorial";
 import NavBar from "../components/NavBar";
 import FirstGenResources from "../components/FirstGenResources";
@@ -23,6 +24,7 @@ export default function Dashboard() {
     resumes: false,
     plan: false,
     materials: false,
+    interviewPrep: false,
   });
   const [artifactsReady, setArtifactsReady] = useState(false);
   const [leadsReady, setLeadsReady] = useState(false);
@@ -67,7 +69,8 @@ export default function Dashboard() {
       listResumes(),
       getPlan(),
       listMaterials(),
-    ]).then(([assessments, resumes, plan, materials]) => {
+      listInterviewPreps(),
+    ]).then(([assessments, resumes, plan, materials, preps]) => {
       if (cancelled) return;
       setHasRun({
         assessment:
@@ -76,6 +79,7 @@ export default function Dashboard() {
         plan: plan.status === "fulfilled" && plan.value != null,
         materials:
           materials.status === "fulfilled" && materials.value.length > 0,
+        interviewPrep: preps.status === "fulfilled" && preps.value.length > 0,
       });
       setArtifactsReady(true);
     });
@@ -178,6 +182,16 @@ export default function Dashboard() {
       ...featureCardState(hasRun.materials, !artifactsReady),
       action: "Tailor to a Posting",
       onAction: () => navigate("/materials"),
+      locked: !profileComplete,
+    },
+    {
+      key: "interview-prep",
+      icon: "🎤",
+      title: "Interview Prep",
+      desc: "The interview formats, focus areas, and practice questions to expect for a target role or posting.",
+      ...featureCardState(hasRun.interviewPrep, !artifactsReady),
+      action: "View / Generate",
+      onAction: () => navigate("/interview-prep"),
       locked: !profileComplete,
     },
   ];

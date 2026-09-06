@@ -18,6 +18,8 @@ PLAN_MAX_OUTPUT = 2000
 JOB_MATCH_MAX_OUTPUT = 1500
 # Resume variant + cover letter + brief in one response — bigger than any single doc.
 POSTING_MATERIALS_MAX_OUTPUT = 4000
+# Formats + focus areas + up to 10 practice questions in one response.
+INTERVIEW_PREP_MAX_OUTPUT = 3000
 
 
 def _extract_json(raw: str) -> str:
@@ -127,6 +129,21 @@ async def run_posting_materials_agent(context: dict) -> dict:
         POSTING_MATERIALS_MAX_OUTPUT,
         "PostingMaterials",
         schema=prompts.POSTING_MATERIALS_SCHEMA,
+    )
+
+
+async def run_interview_prep_agent(context: dict) -> dict:
+    """context keys: profile (structured), target ({mode, title, employer,
+    description}), target_roles (list of {rank, title}), resume_content
+    (optional, trimmed). One call produces the interview formats, focus
+    areas, practice questions, and questions to ask for one target.
+    """
+    return await _call_and_parse(
+        prompts.INTERVIEW_PREP_SYSTEM,
+        json.dumps(context),
+        INTERVIEW_PREP_MAX_OUTPUT,
+        "InterviewPrep",
+        schema=prompts.INTERVIEW_PREP_SCHEMA,
     )
 
 

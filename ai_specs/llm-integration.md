@@ -18,6 +18,7 @@ Clara uses a **multi-agent** design: specialized agents handle distinct steps of
 | Development planning (Phase 2) | Turns an assessment into a ~6-month roadmap of specific skills, experiences, and credentials |
 | Document tailoring (Phase 2) | Produces a posting-specific resume variant and matching cover letter, plus a short employer brief |
 | Job matching (Phase 2) | Scores and explains why scanned postings fit a student's ranked preferences |
+| Interview prep (Phase 2) | Turns one target — a ranked role or a specific posting — into the likely interview formats, focus areas, practice questions, and questions to ask |
 
 Each agent solves something a fixed algorithm cannot: it reasons over unstructured resume/LinkedIn text and open-ended career goals to produce individualized, natural-language guidance.
 
@@ -301,6 +302,97 @@ server-side (the model only sees the index).
 
 ---
 
+### Prompt 6: Interview Prep (Phase 2)
+
+**Purpose:** Turn one target — a ranked target role or a specific posting — into the interview formats to expect, what to study, practice questions, and questions to ask (Feature 9).
+
+**System Prompt:**
+```
+You are Clara, preparing a STEM student for interviews for ONE
+target — either a role they are aiming for or one specific job posting.
+Ground everything in the student's real background and, when a posting is
+given, in the posting text provided. Never invent experience, employers, or
+details about the hiring process you were not given. Produce four things:
+
+1. formats — the interview rounds this student should actually expect for
+   this target, in the order they typically occur (recruiter screen,
+   technical screen, take-home, onsite/final loop, research talk, etc.).
+   Pick the rounds that fit the target and the student's degree level and
+   track — a PhD academia-track candidate faces a job talk and chalk talk,
+   an undergraduate applying to an internship does not. For each, say what
+   to expect and how to prepare. If the posting text names a specific
+   process, follow it rather than the generic pattern.
+
+2. focus_areas — the subjects this student should study hardest for this
+   target: name the area, why it matters for this target specifically, and
+   how to prepare for it. Where the student's own material shows a gap
+   relative to the target, say so plainly and constructively.
+
+3. practice_questions — realistic questions this student is likely to be
+   asked for this target. Mix behavioral and technical (add research
+   questions for a PhD or academia-track student). Behavioral questions
+   should be answerable from the student's real experience — draw on what
+   is in their source material rather than a generic bank. For each,
+   include what the interviewer is really evaluating.
+
+4. questions_to_ask — thoughtful questions the student can ask their
+   interviewer about this target, specific rather than generic.
+
+Be encouraging, concrete, and honest. Clara complements the Temple Career
+Center — mock interviews with a human counselor are the natural next step,
+not something Clara replaces. Anything you cannot ground in the student's
+material or the posting goes in notes_for_student.
+
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "formats": [
+    {"name": "string", "what_to_expect": "string", "how_to_prepare": "string"}
+  ],
+  "focus_areas": [
+    {"area": "string", "why": "string", "how_to_prepare": "string"}
+  ],
+  "practice_questions": [
+    {"question": "string", "type": "behavioral", "what_they_look_for": "string"}
+  ],
+  "questions_to_ask": ["string"],
+  "notes_for_student": ["string"]
+}
+Include 3–5 formats, 4–6 focus areas, 6–10 practice questions, and 3–5
+questions to ask. "type" must be one of "behavioral", "technical", or
+"research". Keep every value a short string, not a nested object.
+```
+
+**User Input:**
+```
+A JSON object with: profile (degree_level, major_program, track),
+target_roles (ranked {rank, title} list), target ({mode: "role"|"posting",
+title, employer, description}), and resume_content (trimmed, contact-stripped
+— null when the student has not uploaded a resume). The posting description is
+capped at MAX_POSTING_CHARS like every other third-party text. No PII and no
+first-gen/working/commuter status are ever sent.
+```
+
+**Expected Output Format:**
+```json
+{
+  "formats": [{ "name": "string", "what_to_expect": "string", "how_to_prepare": "string" }],
+  "focus_areas": [{ "area": "string", "why": "string", "how_to_prepare": "string" }],
+  "practice_questions": [
+    { "question": "string", "type": "behavioral", "what_they_look_for": "string" }
+  ],
+  "questions_to_ask": ["string"],
+  "notes_for_student": ["string"]
+}
+```
+
+**Notes:**
+- One call per prep guide; guides are cached in the `interview_preps` collection and never regenerated to be re-displayed.
+- Unlike Prompt 4, an uploaded resume is optional — prep still works from the profile and the target alone, so `resume_content` may be null.
+- Enforced via structured outputs on the Anthropic path (`INTERVIEW_PREP_SCHEMA`), like Prompts 1–5.
+
+---
+
 ## Architecture
 
 - **Prompt definitions location:** `backend/app/llm/prompts.py`
@@ -329,7 +421,7 @@ User action (frontend)
 | Concern | Decision |
 |---------|----------|
 | Max input size | **Deterministic pre-truncation:** cap parsed experience to the ~3 most recent/relevant roles and enforce a hard input-string limit (start at ~1,500 tokens) *before* building the prompt. Do not pass raw multi-page documents and do not rely on the model to summarize them. Numbers are configurable, but truncation happens in code, not in the LLM. |
-| Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans; ~4,000 for posting materials (resume variant + cover letter + brief in one response) — constants in `agents.py`. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
+| Max output tokens | ~3,000 for resume drafts; ~2,000 for assessments and development plans; ~4,000 for posting materials (resume variant + cover letter + brief in one response); ~3,000 for interview prep (formats + focus areas + up to 10 practice questions in one response) — constants in `agents.py`. Originally ~1,200/~600; raised 2026-06-24 after the lower caps truncated JSON responses mid-object. |
 | Per-call budget awareness | All caps are deterministic and enforced in code (input truncation in `orchestrator.py`, output constants in `agents.py`); agents reuse stored assessments instead of re-running. There is **no** runtime token estimation or per-call cost logging — spend and usage are observed externally (see Ops & Monitoring below). |
 | What is excluded from context | Contact details (PII), unrelated past target roles, completed plan items |
 | Caching | Save generated assessments/resumes so viewing them later does not re-call the model |

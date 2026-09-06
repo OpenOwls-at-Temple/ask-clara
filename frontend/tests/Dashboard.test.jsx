@@ -29,6 +29,9 @@ jest.mock("../src/services/plan", () => ({
 jest.mock("../src/services/materials", () => ({
   listMaterials: jest.fn(),
 }));
+jest.mock("../src/services/interviewPrep", () => ({
+  listInterviewPreps: jest.fn(),
+}));
 jest.mock("../src/components/NavBar", () => () => <nav />);
 jest.mock("../src/utils/tutorial", () => ({
   hasSeenTutorial: jest.fn(),
@@ -42,6 +45,7 @@ const { listAssessments } = require("../src/services/assessment");
 const { listResumes } = require("../src/services/documents");
 const { getPlan } = require("../src/services/plan");
 const { listMaterials } = require("../src/services/materials");
+const { listInterviewPreps } = require("../src/services/interviewPrep");
 const { hasSeenTutorial, markTutorialSeen } = require("../src/utils/tutorial");
 
 const completeProfile = {
@@ -74,6 +78,7 @@ describe("Dashboard page", () => {
     listResumes.mockResolvedValue([]);
     getPlan.mockResolvedValue(null);
     listMaterials.mockResolvedValue([]);
+    listInterviewPreps.mockResolvedValue([]);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -93,7 +98,7 @@ describe("Dashboard page", () => {
     useProfile.mockReturnValue({ profile: null, loading: false });
     await renderDashboard();
 
-    expect(screen.getAllByText("Profile required")).toHaveLength(5);
+    expect(screen.getAllByText("Profile required")).toHaveLength(6);
     expect(screen.getByText("Incomplete")).toBeInTheDocument();
     // Locked cards render disabled buttons.
     expect(screen.getByText("View / Run")).toBeDisabled();
@@ -137,7 +142,7 @@ describe("Dashboard page", () => {
     await renderDashboard();
 
     expect(screen.getByText("Complete")).toBeInTheDocument();
-    expect(screen.getAllByText("Ready")).toHaveLength(4);
+    expect(screen.getAllByText("Ready")).toHaveLength(5);
     expect(screen.queryByText("Profile required")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByText("View / Run"));
@@ -213,6 +218,10 @@ describe("Dashboard page", () => {
     ["resumes", () => listResumes.mockResolvedValue([{ id: "r1" }])],
     ["plan", () => getPlan.mockResolvedValue({ id: "p1" })],
     ["materials", () => listMaterials.mockResolvedValue([{ id: "m1" }])],
+    [
+      "interview prep",
+      () => listInterviewPreps.mockResolvedValue([{ id: "ip1" }]),
+    ],
   ])(
     "the %s card turns green once the feature has been run",
     async (_, arm) => {
@@ -224,7 +233,7 @@ describe("Dashboard page", () => {
       await waitFor(() =>
         expect(screen.getAllByText("Complete")).toHaveLength(2),
       );
-      expect(screen.getAllByText("Ready")).toHaveLength(3);
+      expect(screen.getAllByText("Ready")).toHaveLength(4);
     },
   );
 
@@ -247,9 +256,10 @@ describe("Dashboard page", () => {
     listResumes.mockReturnValue(new Promise(() => {}));
     getPlan.mockReturnValue(new Promise(() => {}));
     listMaterials.mockReturnValue(new Promise(() => {}));
+    listInterviewPreps.mockReturnValue(new Promise(() => {}));
     const { container } = await renderDashboard();
 
-    expect(screen.getAllByText("Loading…")).toHaveLength(5);
+    expect(screen.getAllByText("Loading…")).toHaveLength(6);
     expect(screen.queryByText("Ready")).toBeNull();
     expect(container.querySelector(".icon-cherry")).toBeNull();
   });
@@ -260,9 +270,10 @@ describe("Dashboard page", () => {
     listResumes.mockRejectedValue(new Error("500"));
     getPlan.mockRejectedValue(new Error("500"));
     listMaterials.mockRejectedValue(new Error("500"));
+    listInterviewPreps.mockRejectedValue(new Error("500"));
     await renderDashboard();
 
-    expect(screen.getAllByText("Ready")).toHaveLength(4);
+    expect(screen.getAllByText("Ready")).toHaveLength(5);
   });
 
   test("artifact endpoints are not called while the profile is incomplete", async () => {

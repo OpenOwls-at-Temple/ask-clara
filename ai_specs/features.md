@@ -88,7 +88,7 @@ Each feature includes a short description and a set of acceptance criteria writt
 ## Phase 2 — Enhanced Features
 <!-- Defined after Phase 1 is stable. Development plans, job scanning, and per-posting tailoring. -->
 
-**Cross-cutting UX (2026-07-17):** onboarding tutorial at `/how-it-works` — a frontend-only walkthrough of the six steps (Features 2/4/5/6/7/8), auto-shown once to first-time students with an incomplete profile (localStorage flag) and always revisitable via the Dashboard welcome-header link.
+**Cross-cutting UX (2026-07-17):** onboarding tutorial at `/how-it-works` — a frontend-only walkthrough of the seven steps (Features 2/4/5/6/7/8/9), auto-shown once to first-time students with an incomplete profile (localStorage flag) and always revisitable via the Dashboard welcome-header link.
 
 ### Feature 6: Personalized 6-Month Development Plan
 **As a** student,
@@ -135,8 +135,11 @@ Each feature includes a short description and a set of acceptance criteria writt
 **So that** I can navigate the STEM hiring pipeline with confidence.
 
 **Acceptance Criteria:**
-- [ ] Given a target role or posting, when I request prep, then Clara outlines likely interview formats and focus areas.
-- [ ] Given the prep, when it displays, then it includes practice prompts relevant to my target role.
+- [x] Given a target role or posting, when I request prep, then Clara outlines likely interview formats and focus areas. *(Two targets: one of my three ranked roles, or a specific posting — entered by hand, by link, or handed over from a job lead via "Prep for interview".)*
+- [x] Given the prep, when it displays, then it includes practice prompts relevant to my target role. *(Behavioral, technical, and — for PhD/academia-track students — research questions, each with what the interviewer is evaluating, plus questions to ask them.)*
+
+**Notes:**
+- A resume is **not** required (unlike Feature 8): prep is grounded in the uploaded resume when there is one, and in the profile plus the target otherwise. A posting link that cannot be fetched degrades the prep rather than blocking it — the title and employer alone still support useful guidance.
 
 ---
 

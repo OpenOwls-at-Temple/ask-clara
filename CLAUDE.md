@@ -74,7 +74,7 @@ React SPA (Vite)
 **Key layout:**
 - `backend/app/routes/` — one file per resource (`assessment.py`, `profile.py`, etc.)
 - `backend/app/services/` — business logic; routes call services, not DB directly
-- `backend/app/llm/` — the entire LLM layer: `prompts.py` (all prompts), `agents.py` (assessment, planning, document, job-match agents), `orchestrator.py` (context assembly + token budget), `service.py` (provider-switchable client — Anthropic default, Gemini/DeepSeek via `LLM_PROVIDER` — with retry/fallback)
+- `backend/app/llm/` — the entire LLM layer: `prompts.py` (all prompts), `agents.py` (assessment, planning, document, job-match, interview-prep agents), `orchestrator.py` (context assembly + token budget), `service.py` (provider-switchable client — Anthropic default, Gemini/DeepSeek via `LLM_PROVIDER` — with retry/fallback)
 - `backend/app/models/` — SQLAlchemy models; `backend/app/documents/` — MongoDB access
 - `frontend/src/pages/` — full-page views; `frontend/src/components/` — reusable UI; `frontend/src/services/` — API call functions (no LLM calls here, ever)
 

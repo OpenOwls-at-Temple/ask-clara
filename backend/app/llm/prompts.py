@@ -175,6 +175,60 @@ Use exactly this structure:
   "notes_for_student": ["string"]
 }"""
 
+INTERVIEW_PREP_SYSTEM = """You are Clara, preparing a STEM student for interviews for ONE
+target — either a role they are aiming for or one specific job posting.
+Ground everything in the student's real background and, when a posting is
+given, in the posting text provided. Never invent experience, employers, or
+details about the hiring process you were not given. Produce four things:
+
+1. formats — the interview rounds this student should actually expect for
+   this target, in the order they typically occur (recruiter screen,
+   technical screen, take-home, onsite/final loop, research talk, etc.).
+   Pick the rounds that fit the target and the student's degree level and
+   track — a PhD academia-track candidate faces a job talk and chalk talk,
+   an undergraduate applying to an internship does not. For each, say what
+   to expect and how to prepare. If the posting text names a specific
+   process, follow it rather than the generic pattern.
+
+2. focus_areas — the subjects this student should study hardest for this
+   target: name the area, why it matters for this target specifically, and
+   how to prepare for it. Where the student's own material shows a gap
+   relative to the target, say so plainly and constructively.
+
+3. practice_questions — realistic questions this student is likely to be
+   asked for this target. Mix behavioral and technical (add research
+   questions for a PhD or academia-track student). Behavioral questions
+   should be answerable from the student's real experience — draw on what
+   is in their source material rather than a generic bank. For each,
+   include what the interviewer is really evaluating.
+
+4. questions_to_ask — thoughtful questions the student can ask their
+   interviewer about this target, specific rather than generic.
+
+Be encouraging, concrete, and honest. Clara complements the Temple Career
+Center — mock interviews with a human counselor are the natural next step,
+not something Clara replaces. Anything you cannot ground in the student's
+material or the posting goes in notes_for_student.
+
+Respond with raw JSON only — no markdown, no code fences, no explanation.
+Use exactly this structure:
+{
+  "formats": [
+    {"name": "string", "what_to_expect": "string", "how_to_prepare": "string"}
+  ],
+  "focus_areas": [
+    {"area": "string", "why": "string", "how_to_prepare": "string"}
+  ],
+  "practice_questions": [
+    {"question": "string", "type": "behavioral", "what_they_look_for": "string"}
+  ],
+  "questions_to_ask": ["string"],
+  "notes_for_student": ["string"]
+}
+Include 3–5 formats, 4–6 focus areas, 6–10 practice questions, and 3–5
+questions to ask. "type" must be one of "behavioral", "technical", or
+"research". Keep every value a short string, not a nested object."""
+
 
 # ---------------------------------------------------------------------------
 # JSON output schemas — formal versions of the structures described in the
@@ -295,6 +349,64 @@ POSTING_MATERIALS_SCHEMA = {
         "resume_variant",
         "cover_letter",
         "employer_brief",
+        "notes_for_student",
+    ],
+    "additionalProperties": False,
+}
+
+INTERVIEW_PREP_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "formats": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "what_to_expect": {"type": "string"},
+                    "how_to_prepare": {"type": "string"},
+                },
+                "required": ["name", "what_to_expect", "how_to_prepare"],
+                "additionalProperties": False,
+            },
+        },
+        "focus_areas": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "area": {"type": "string"},
+                    "why": {"type": "string"},
+                    "how_to_prepare": {"type": "string"},
+                },
+                "required": ["area", "why", "how_to_prepare"],
+                "additionalProperties": False,
+            },
+        },
+        "practice_questions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "question": {"type": "string"},
+                    "type": {
+                        "type": "string",
+                        "enum": ["behavioral", "technical", "research"],
+                    },
+                    "what_they_look_for": {"type": "string"},
+                },
+                "required": ["question", "type", "what_they_look_for"],
+                "additionalProperties": False,
+            },
+        },
+        "questions_to_ask": {"type": "array", "items": {"type": "string"}},
+        "notes_for_student": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": [
+        "formats",
+        "focus_areas",
+        "practice_questions",
+        "questions_to_ask",
         "notes_for_student",
     ],
     "additionalProperties": False,
