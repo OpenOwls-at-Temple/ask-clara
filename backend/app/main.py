@@ -1,3 +1,6 @@
+import logging
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,7 +16,28 @@ from app.routes import (
     plan,
 )
 
-app = FastAPI(title="Clara API")
+logger = logging.getLogger("clara")
+
+_MONGO_INDEXED_COLLECTIONS = ("resumes", "assessments", "linkedin", "posting_materials")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure Mongo indexes exist, but never let a transient Mongo outage block
+    # boot — create_index is idempotent, and gating startup on it would take the
+    # whole API (including routes that don't touch Mongo) down on a cold start.
+    from app.database import get_mongo_db
+
+    try:
+        mongo = get_mongo_db()
+        for collection in _MONGO_INDEXED_COLLECTIONS:
+            await mongo[collection].create_index([("user_id", 1)])
+    except Exception:
+        logger.exception("Mongo index creation failed at startup")
+    yield
+
+
+app = FastAPI(title="Clara API", lifespan=lifespan)
 
 _cors_origins = [settings.frontend_origin]
 if settings.environment == "local":
@@ -28,15 +52,11 @@ app.add_middleware(
 )
 
 
-@app.on_event("startup")
-async def startup_event():
-    from app.database import get_mongo_db
-
-    mongo = get_mongo_db()
-    await mongo["resumes"].create_index([("user_id", 1)])
-    await mongo["assessments"].create_index([("user_id", 1)])
-    await mongo["linkedin"].create_index([("user_id", 1)])
-    await mongo["posting_materials"].create_index([("user_id", 1)])
+@app.get("/api/health", tags=["health"])
+async def health():
+    """Lightweight liveness probe — no DB calls, safe for Render health checks
+    and keep-alive pings."""
+    return {"status": "ok"}
 
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])

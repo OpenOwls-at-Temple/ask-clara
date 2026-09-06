@@ -19,7 +19,9 @@ bearer = HTTPBearer()
 def create_access_token(user_id: str) -> str:
     exp = datetime.now(timezone.utc) + timedelta(minutes=_ACCESS_EXPIRE_MINUTES)
     return jwt.encode(
-        {"sub": user_id, "exp": exp}, settings.jwt_secret, algorithm="HS256"
+        {"sub": user_id, "type": "access", "exp": exp},
+        settings.jwt_secret,
+        algorithm="HS256",
     )
 
 
@@ -39,6 +41,15 @@ def decode_access_token(token: str) -> str:
     try:
         payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
     except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+    # Reject anything that isn't an access token (e.g. a refresh token presented
+    # as a Bearer credential). Tokens minted before the "type" claim existed carry
+    # no type and are treated as access tokens for backward compatibility; they
+    # self-heal within the 15-minute access-token lifetime.
+    token_type = payload.get("type", "access")
+    if token_type != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
@@ -78,7 +89,13 @@ async def get_current_user(
 ) -> User:
     """FastAPI dependency — validates the Bearer access token and returns the User row."""
     user_id = decode_access_token(credentials.credentials)
-    user = await db.get(User, uuid.UUID(user_id))
+    try:
+        user_uuid = uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+        )
+    user = await db.get(User, user_uuid)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"

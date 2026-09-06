@@ -93,6 +93,7 @@ Quick reference only:
 2. Set environment variables in the Render dashboard under *Environment*.
 3. First deploy may take 3–5 minutes.
 4. Check logs at `https://dashboard.render.com`.
+5. **Health check:** point Render's health-check path at `GET /api/health` — a lightweight probe that returns `{"status": "ok"}` with no DB calls, so it reports the app as live even if Mongo/Postgres are briefly unreachable.
 
 ### Databases
 1. **Postgres (Supabase):** run migrations manually — `python -m alembic upgrade head`. Never edit the production schema directly; test migrations on staging first.
