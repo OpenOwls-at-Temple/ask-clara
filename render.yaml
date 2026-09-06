@@ -1,3 +1,8 @@
+# ⚠️ NOT CURRENTLY AUTHORITATIVE. The staging service (clara-backend) was created
+# manually in the Render dashboard, not from this Blueprint — the account shows no
+# Blueprints, so Render never reads this file. Nothing here takes effect: settings
+# and env vars must be changed in the dashboard, and this file kept in sync by hand.
+# Adopting it as a real Blueprint is an open decision (see progress.md → Up Next).
 services:
   - type: web
     name: clara-backend
@@ -7,6 +12,7 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     # Liveness probe. Deliberately a route with no DB calls, so a brief
     # Postgres/Mongo outage can't fail the health check and trigger a restart loop.
+    # Set by hand at Settings → Health Checks; this line is a mirror, not the source.
     healthCheckPath: /api/health
     envVars:
       - key: ENVIRONMENT
