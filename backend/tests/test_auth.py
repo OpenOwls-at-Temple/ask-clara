@@ -41,16 +41,78 @@ def test_legacy_refresh_token_without_version_decodes_as_zero():
 
 
 def test_refresh_token_rejected_as_access_token():
-    """A refresh token must not pass the access-token decoder's type check if extended."""
-    from app.auth import create_refresh_token, decode_refresh_token, decode_access_token
+    """A refresh token must not pass the access-token decoder. Refresh tokens live
+    only in httpOnly cookies, but decode_access_token enforces the "type" claim as
+    defense-in-depth so a refresh token can never authenticate a Bearer request."""
+    from app.auth import create_refresh_token, decode_access_token
 
     user_id = "00000000-0000-0000-0000-000000000002"
     refresh = create_refresh_token(user_id)
-    # decode_access_token does not check type — that's intentional (type is only enforced
-    # on the refresh endpoint). The real guard is that refresh tokens are httpOnly cookies
-    # never visible to the frontend, so they can't be used as Bearer tokens in practice.
-    decoded = decode_access_token(refresh)
-    assert decoded == user_id
+    with pytest.raises(HTTPException) as exc_info:
+        decode_access_token(refresh)
+    assert exc_info.value.status_code == 401
+
+
+def test_legacy_access_token_without_type_still_decodes():
+    """Access tokens minted before the "type" claim existed carry no type; they must
+    keep decoding (self-healing within the 15-minute access-token lifetime)."""
+    from datetime import datetime, timedelta, timezone
+
+    from jose import jwt
+
+    from app.auth import decode_access_token
+    from app.config import settings
+
+    user_id = "00000000-0000-0000-0000-000000000002"
+    exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+    legacy = jwt.encode(
+        {"sub": user_id, "exp": exp}, settings.jwt_secret, algorithm="HS256"
+    )
+    assert decode_access_token(legacy) == user_id
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_rejects_refresh_token():
+    """End-to-end: a refresh token presented as a Bearer credential must 401 at the
+    dependency, never resolving to a User row."""
+    from fastapi.security import HTTPAuthorizationCredentials
+
+    from app.auth import create_refresh_token, get_current_user
+
+    refresh = create_refresh_token("00000000-0000-0000-0000-000000000002")
+    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=refresh)
+    db = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(credentials=creds, db=db)
+    assert exc_info.value.status_code == 401
+    db.get.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_rejects_non_uuid_subject():
+    """A validly-signed token whose sub is not a UUID must 401, not 500."""
+    from datetime import datetime, timedelta, timezone
+
+    from fastapi.security import HTTPAuthorizationCredentials
+    from jose import jwt
+
+    from app.auth import get_current_user
+    from app.config import settings
+
+    exp = datetime.now(timezone.utc) + timedelta(minutes=5)
+    token = jwt.encode(
+        {"sub": "not-a-uuid", "type": "access", "exp": exp},
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+    creds = HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
+    db = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc_info:
+        await get_current_user(credentials=creds, db=db)
+    assert exc_info.value.status_code == 401
+    db.get.assert_not_awaited()
 
 
 def test_decode_access_token_rejects_garbage():
