@@ -89,6 +89,50 @@ def _plan() -> dict:
     }
 
 
+def _interview_prep(context: dict) -> dict:
+    target = context.get("target") or {}
+    title = target.get("title", "Software Engineer")
+    return {
+        "formats": [
+            {
+                "name": "Mock format: recruiter screen",
+                "what_to_expect": f"Mock expectation: a 30-minute call about your interest in {title}.",
+                "how_to_prepare": "Mock prep: rehearse a two-minute background summary.",
+            },
+            {
+                "name": "Mock format: technical screen",
+                "what_to_expect": "Mock expectation: one coding problem shared on a live editor.",
+                "how_to_prepare": "Mock prep: practice explaining your approach out loud.",
+            },
+        ],
+        "focus_areas": [
+            {
+                "area": "Mock focus area: data structures",
+                "why": f"Mock rationale: core to {title} screens.",
+                "how_to_prepare": "Mock prep: work through arrays, hash maps, and trees.",
+            }
+        ],
+        "practice_questions": [
+            {
+                "question": "Mock question: tell me about a project you shipped end to end.",
+                "type": "behavioral",
+                "what_they_look_for": "Mock signal: ownership and clear communication.",
+            },
+            {
+                "question": "Mock question: how would you debug a slow API endpoint?",
+                "type": "technical",
+                "what_they_look_for": "Mock signal: a systematic approach to narrowing causes.",
+            },
+        ],
+        "questions_to_ask": [
+            "Mock question to ask: how is success measured in the first six months?"
+        ],
+        "notes_for_student": [
+            "Mock note: book a mock interview with the Temple Career Center."
+        ],
+    }
+
+
 def generate(user_content: str, schema: dict | None) -> str:
     """Return canned JSON for the agent identified by the schema shape."""
     required = set((schema or {}).get("required", []))
@@ -102,6 +146,14 @@ def generate(user_content: str, schema: dict | None) -> str:
         payload = _job_match(context)
     elif required == {"horizon_months", "items"}:
         payload = _plan()
+    elif required == {
+        "formats",
+        "focus_areas",
+        "practice_questions",
+        "questions_to_ask",
+        "notes_for_student",
+    }:
+        payload = _interview_prep(context)
     else:
         payload = {"note": "Mock response (no known schema requested)."}
 

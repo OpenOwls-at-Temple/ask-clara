@@ -12,6 +12,7 @@ from app.routes import (
     profile,
     assessment,
     documents,
+    interview_prep,
     leads,
     materials,
     plan,
@@ -19,7 +20,13 @@ from app.routes import (
 
 logger = logging.getLogger("clara")
 
-_MONGO_INDEXED_COLLECTIONS = ("resumes", "assessments", "linkedin", "posting_materials")
+_MONGO_INDEXED_COLLECTIONS = (
+    "resumes",
+    "assessments",
+    "linkedin",
+    "posting_materials",
+    "interview_preps",
+)
 
 
 async def _ensure_mongo_indexes() -> None:
@@ -85,4 +92,5 @@ app.include_router(documents.router, prefix="/api", tags=["documents"])
 app.include_router(plan.router, prefix="/api", tags=["plan"])
 app.include_router(leads.router, prefix="/api", tags=["leads"])
 app.include_router(materials.router, prefix="/api", tags=["materials"])
+app.include_router(interview_prep.router, prefix="/api", tags=["interview-prep"])
 app.include_router(admin.router, prefix="/api", tags=["admin"])

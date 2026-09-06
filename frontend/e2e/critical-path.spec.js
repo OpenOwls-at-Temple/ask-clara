@@ -9,7 +9,8 @@ const RESUME_FIXTURE = path.resolve(
 );
 const SECRET = process.env.TEST_LOGIN_SECRET || "e2e-local-secret";
 
-// One student journey in order: sign in → intake → assessment → resumes.
+// One student journey in order: sign in → intake → assessment → resumes →
+// interview prep.
 test.describe.configure({ mode: "serial" });
 
 // Unique per run so reruns never collide on profile state.
@@ -61,9 +62,7 @@ test("student signs in, completes intake, and generates an assessment", async ({
     .setInputFiles(RESUME_FIXTURE);
   await page.getByRole("button", { name: "Upload Resume" }).click();
   // The collapsed card shows the uploaded filename.
-  await expect(
-    page.getByText(/synthetic-resume\.docx on file/),
-  ).toBeVisible();
+  await expect(page.getByText(/synthetic-resume\.docx on file/)).toBeVisible();
 
   // Dashboard now shows a complete profile with unlocked AI cards. The
   // subtitle also contains the word "Complete", so match the badge exactly.
@@ -95,4 +94,26 @@ test("generates one tailored resume draft per target role", async ({
   await expect(
     page.getByText("Mock summary tailored to the role.").first(),
   ).toBeVisible();
+});
+
+test("generates interview prep for a ranked target role", async ({ page }) => {
+  // Same student as the previous tests (serial mode) — restore the session.
+  const login = await page.request.post("/api/auth/test-login", {
+    data: { email, display_name: "E2E Student" },
+    headers: { "X-Test-Login-Secret": SECRET },
+  });
+  expect(login.ok()).toBeTruthy();
+
+  await page.goto("/interview-prep");
+  // Defaults to the rank-1 target role saved during intake.
+  await expect(page.getByLabel("Target role")).toHaveValue("1");
+  await page.getByRole("button", { name: "Get interview prep" }).click();
+
+  // The freshly generated guide opens expanded.
+  await expect(page.getByText(/Mock format: recruiter screen/)).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByText(/Mock focus area/).first()).toBeVisible();
+  await expect(page.getByText(/Mock question: tell me about/)).toBeVisible();
+  await expect(page.getByText(/Mock question to ask/)).toBeVisible();
 });

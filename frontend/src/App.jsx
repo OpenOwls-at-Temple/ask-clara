@@ -5,6 +5,7 @@ import Assessment from "./pages/Assessment";
 import Dashboard from "./pages/Dashboard";
 import HowItWorks from "./pages/HowItWorks";
 import Intake from "./pages/Intake";
+import InterviewPrep from "./pages/InterviewPrep";
 import JobLeads from "./pages/JobLeads";
 import Materials from "./pages/Materials";
 import Plan from "./pages/Plan";
@@ -84,6 +85,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <Materials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/interview-prep"
+          element={
+            <ProtectedRoute>
+              <InterviewPrep />
             </ProtectedRoute>
           }
         />

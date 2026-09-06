@@ -11,6 +11,7 @@ const NAV_LINKS = [
   { to: "/plan", label: "Plan" },
   { to: "/leads", label: "Leads" },
   { to: "/materials", label: "Materials" },
+  { to: "/interview-prep", label: "Interview Prep" },
 ];
 
 export default function NavBar() {

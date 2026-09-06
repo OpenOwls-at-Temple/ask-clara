@@ -11,9 +11,15 @@ from app.database import get_db, get_mongo_db
 from app.models.lead import JobLead
 from app.models.user import User
 from app.routes.materials import consume_quota_slot, refund_quota_slot
+from app.schemas.interview_prep import InterviewPrepOut
 from app.schemas.lead import LeadOut, LeadStatusUpdate
 from app.schemas.materials import LeadMaterialsRequest, MaterialsOut
-from app.services import lead_service, materials_service, profile_service
+from app.services import (
+    interview_prep_service,
+    lead_service,
+    materials_service,
+    profile_service,
+)
 from app.services.posting_fetch import PostingFetchError
 
 logger = logging.getLogger(__name__)
@@ -209,3 +215,46 @@ async def generate_lead_materials(
         )
 
     return MaterialsOut(**doc)
+
+
+@router.post("/leads/{lead_id}/interview-prep", response_model=InterviewPrepOut)
+async def generate_lead_interview_prep(
+    lead_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Feature 9: interview prep for one stored lead.
+
+    The lead's posting page is fetched to enrich the prep, but a failed fetch
+    is not fatal — the title and employer alone still support useful guidance.
+    """
+    try:
+        lead_uuid = uuid.UUID(lead_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found."
+        )
+
+    # Ownership is verified before the quota slot is consumed.
+    lead = await materials_service.get_owned_lead(db, user.id, lead_uuid)
+    if lead is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Lead not found."
+        )
+
+    await consume_quota_slot(db, user.id)
+
+    mongo = get_mongo_db()
+    try:
+        doc = await interview_prep_service.generate_for_lead(db, mongo, user.id, lead)
+    except Exception as exc:
+        await refund_quota_slot(db, user.id)
+        if isinstance(exc, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+            )
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)
+        )
+
+    return InterviewPrepOut(**doc)

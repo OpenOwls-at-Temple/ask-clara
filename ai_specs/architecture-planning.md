@@ -13,7 +13,7 @@ Clara is a three-tier web application with a multi-agent LLM layer:
 - A **React (Vite) frontend** that handles sign-in, profile intake, and the views for assessments, plans, resumes, and job leads.
 - A **FastAPI backend** that exposes a REST API, enforces auth and ownership, runs business logic, and is the **only** place that calls the LLM.
 - A **hybrid data layer**: **PostgreSQL** for structured/queryable records (users, profiles, ranked preferences, plans, job leads) and **MongoDB** for document-shaped data (parsed resumes, LinkedIn extracts, generated resumes and cover letters, assessment transcripts).
-- An **LLM orchestration layer** inside the backend that coordinates specialized "agents" (assessment, planning, document generation, job matching). Each agent is a prompt + service function; the orchestrator decides which agent runs and assembles context. Agents are called server-side only.
+- An **LLM orchestration layer** inside the backend that coordinates specialized "agents" (assessment, planning, document generation, job matching, interview prep). Each agent is a prompt + service function; the orchestrator decides which agent runs and assembles context. Agents are called server-side only.
 
 Frontend → REST → backend services → (Postgres + MongoDB) and, where reasoning is needed, → LLM orchestrator → Anthropic API.
 
@@ -137,6 +137,7 @@ clara/
 | `linkedin` | `{ user_id, raw_text, structured_json, created_at }` |
 | `assessments` | `{ user_id, strengths[], gaps[], recommendations[], model, created_at }` |
 | `posting_materials` | `{ user_id, lead_id (optional), posting: {title, employer, location, url, description}, fit_summary, resume_sections[], cover_letter, employer_brief, notes_for_student[], model, created_at }` (Phase 2, Feature 8 — one document per generated materials set; `lead_id` is set when the posting came from a stored job lead, null when the student supplied it by link or manual entry) |
+| `interview_preps` | `{ user_id, lead_id (optional), target: {mode: "role"|"posting", title, employer, url, rank}, formats[], focus_areas[], practice_questions[], questions_to_ask[], notes_for_student[], model, created_at }` (Phase 2, Feature 9 — one document per generated prep guide; `target.mode` is `"role"` for one of the student's ranked target roles and `"posting"` for a specific posting, and `lead_id` is set only when that posting came from a stored job lead) |
 
 ---
 
@@ -166,6 +167,9 @@ clara/
 | POST | `/api/materials` | (Phase 2) Tailored resume + cover letter + employer brief for a posting the student provided by link or manual entry (quota-gated) |
 | GET | `/api/materials` | (Phase 2) List the user's saved posting materials (cached — viewing never re-calls the model) |
 | GET | `/api/materials/:id/resume/download` | (Phase 2) Download the posting-tailored resume variant as a one-page Typst PDF |
+| POST | `/api/interview-prep` | (Phase 2) Interview formats, focus areas, practice questions, and questions to ask for one target — body carries either `target_rank` (one of the student's ranked roles) or `posting` (title required; employer/url/description optional), never both (quota-gated) |
+| GET | `/api/interview-prep` | (Phase 2) List the student's saved prep guides (cached — viewing never re-calls the model) |
+| POST | `/api/leads/:id/interview-prep` | (Phase 2) The same prep for a stored lead; the lead's posting page is fetched to enrich it, and a failed fetch degrades the prep rather than blocking it (no 422) |
 | POST | `/api/admin/scan-jobs` | (Phase 2) Trigger the job-leads scan; called by the scheduled GitHub Actions workflow, returns 202 and runs the scan as a background task |
 | GET | `/api/admin/scan-jobs/status` | (Phase 2) Scan progress/completion; polled by the workflow (doubles as keep-alive) |
 

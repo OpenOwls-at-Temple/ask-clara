@@ -9,9 +9,10 @@ const RESUME_FIXTURE = path.resolve(
 );
 const SECRET = process.env.TEST_LOGIN_SECRET || "e2e-local-secret";
 
-// Visual-regression baselines for the 5 core pages, each captured in a populated
+// Visual-regression baselines for the 6 core pages, each captured in a populated
 // state against the deterministic mock LLM provider. A single serial flow seeds
-// the state every later page needs: profile → assessment → resumes → plan. The
+// the state every later page needs: profile → assessment → resumes → plan →
+// interview prep. The
 // screenshot assertions are soft so one visual diff does not hide the others —
 // every page is checked and every diff reported in a single run.
 test.describe.configure({ mode: "serial" });
@@ -106,4 +107,12 @@ test("core pages match their visual baselines", async ({ page }) => {
   });
   await expect(page.getByText("Milestones")).toBeVisible();
   await snapshot(page, "plan.png");
+
+  // 6) Interview prep — a guide for the rank-1 target role.
+  await page.goto("/interview-prep");
+  await page.getByRole("button", { name: "Get interview prep" }).click();
+  await expect(page.getByText(/Mock format: recruiter screen/)).toBeVisible({
+    timeout: 30_000,
+  });
+  await snapshot(page, "interview-prep.png");
 });

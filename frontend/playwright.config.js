@@ -39,7 +39,10 @@ export default defineConfig({
       cwd: "../backend",
       url: "http://localhost:8000/docs",
       reuseExistingServer: false,
-      timeout: 60_000,
+      // Cold starts are slow where the repo lives on a mounted volume (the
+      // Playwright container used to regenerate the Linux screenshot
+      // baselines) — 60s was not enough for Vite's first optimize pass there.
+      timeout: 180_000,
       env: {
         ENVIRONMENT: "local",
         LLM_PROVIDER: "mock",
@@ -50,7 +53,10 @@ export default defineConfig({
       command: "npm run dev",
       url: "http://localhost:5173",
       reuseExistingServer: false,
-      timeout: 60_000,
+      // Cold starts are slow where the repo lives on a mounted volume (the
+      // Playwright container used to regenerate the Linux screenshot
+      // baselines) — 60s was not enough for Vite's first optimize pass there.
+      timeout: 180_000,
       // CI has no frontend/.env (gitignored) — provide the Vite vars here so
       // the app's fetch wrapper gets a real API base in every environment.
       env: {

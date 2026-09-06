@@ -54,6 +54,14 @@ const STEPS = [
     route: "/materials",
     action: "Go to Materials",
   },
+  {
+    key: "interview-prep",
+    icon: "🎤",
+    title: "Prepare for the interview",
+    desc: "For a target role or a specific posting, see the interview rounds to expect, what to study, and practice questions drawn from your own background.",
+    route: "/interview-prep",
+    action: "Go to Interview Prep",
+  },
 ];
 
 export default function HowItWorks() {

@@ -8,7 +8,7 @@ function fitLabel(score) {
   return `${Math.round(score * 100)}% fit`;
 }
 
-function LeadCard({ lead, onStatus, onTailor }) {
+function LeadCard({ lead, onStatus, onTailor, onPrep }) {
   const applied = lead.status === "applied";
   const dismissed = lead.status === "dismissed";
 
@@ -70,6 +70,12 @@ function LeadCard({ lead, onStatus, onTailor }) {
               </button>
               <button
                 className="btn btn-secondary btn-sm"
+                onClick={() => onPrep(lead)}
+              >
+                Prep for interview
+              </button>
+              <button
+                className="btn btn-secondary btn-sm"
                 onClick={() => onStatus(lead.id, applied ? "seen" : "applied")}
               >
                 {applied ? "Undo applied" : "I applied"}
@@ -103,6 +109,8 @@ export default function JobLeads() {
 
   // Feature 8: hand the lead to the Materials page for per-posting tailoring.
   const tailor = (lead) => navigate("/materials", { state: { lead } });
+  // Feature 9: same handoff to the Interview Prep page.
+  const prep = (lead) => navigate("/interview-prep", { state: { lead } });
 
   return (
     <>
@@ -218,6 +226,7 @@ export default function JobLeads() {
                   lead={lead}
                   onStatus={setStatus}
                   onTailor={tailor}
+                  onPrep={prep}
                 />
               ))}
             </div>
@@ -244,6 +253,7 @@ export default function JobLeads() {
                     lead={lead}
                     onStatus={setStatus}
                     onTailor={tailor}
+                    onPrep={prep}
                   />
                 ))}
             </div>

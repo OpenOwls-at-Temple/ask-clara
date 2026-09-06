@@ -15,9 +15,9 @@
 ## Status Summary
 
 Features 1–5 (Phase 1 MVP) are implemented and deployed to staging
-(https://ask-clara-zeta.vercel.app). Phase 2 is underway: Features 6 (development plan),
-7 (job leads scanning & alerts), and 8 (posting-tailored materials) are shipped and live.
-Feature 9 (interview prep guidance) is next.
+(https://ask-clara-zeta.vercel.app). Phase 2 is **feature-complete**: Features 6 (development
+plan), 7 (job leads scanning & alerts), 8 (posting-tailored materials), and 9 (interview prep
+guidance) are all built and browser-verified.
 
 ---
 
@@ -66,6 +66,7 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-23 — Auth hardening + liveness probe: access tokens now carry a `type: "access"` claim and `decode_access_token` rejects anything else, so a leaked refresh token can no longer authenticate a Bearer request (legacy no-`type` tokens temporarily accepted for the deploy window; fallback since removed — see 2026-09-06); `get_current_user` now 401s instead of 500s on a non-UUID `sub`. Added `GET /api/health` (no DB calls) for Render health checks, and moved Mongo index creation off the deprecated `on_event("startup")` onto a `lifespan` handler that runs it as a **background task** — verified against a stopped Mongo container: awaiting it inline held the app in "waiting for application startup" for the driver's full 30s server-selection timeout, refusing every request including `/api/health`; backgrounded, health answers 200 immediately. `healthCheckPath: /api/health` added to `render.yaml` — later found to be inert, since the service is dashboard-created rather than Blueprint-managed (PR #32 corrects the docs); specs synced (`auth-security.md` token-type rule, `deployment.md` health-check step) (PR #31)
 - [x] 2026-09-06 — Render health check switched on: path set to `/api/health` by hand at *Settings → Health Checks* (the only place that takes effect for this service) and staging redeployed — polled 58/58 × 200, no downtime, slowest 226ms. Deploys now gate on an HTTP 2xx instead of the default TCP port probe, which passed as soon as the port bound even while the app was still in startup refusing requests
 - [x] 2026-09-06 — Dropped the legacy untyped-access-token fallback: `decode_access_token` now requires `type == "access"` rather than defaulting a missing claim to `access`. The compatibility window closed when the pre-#31 tokens aged out of their 15-min lifetime. Test inverted to assert rejection; `auth-security.md` synced (the `tv`-less refresh-token fallback is unrelated and stays)
+- [x] 2026-09-06 — Feature 9: interview prep guidance — interview-prep agent (formats, focus areas, practice questions, questions to ask; structured outputs) against one target, either a ranked target role or a posting (manual, by link, or handed over from a job lead); `interview_preps` Mongo collection, quota-gated `/api/interview-prep*` + `/api/leads/:id/interview-prep`, `InterviewPrep.jsx` + "Prep for interview" on leads + dashboard card; no resume required and a failed posting fetch degrades rather than blocks; mock provider + E2E and visual coverage added; specs synced (Feature 9 ACs, API table, `interview_preps` shape, Prompt 6) (PR #34); browser-verified
 
 ---
 
@@ -86,8 +87,7 @@ _Nothing currently in progress._
 
 ## Up Next
 
-- [ ] Feature 9: interview prep guidance (last Phase 2 feature)
-- [ ] Before the first scheduled scan: set `SCAN_TRIGGER_SECRET` in Render and `BACKEND_URL` + `SCAN_TRIGGER_SECRET` in GitHub repository secrets (owner-managed)
+- [x] Before the first scheduled scan: set `SCAN_TRIGGER_SECRET` in Render and `BACKEND_URL` + `SCAN_TRIGGER_SECRET` in GitHub repository secrets (owner-managed) — done 2026-09-06
 - [ ] **Decision:** the `clara-backend` Render service was created by hand, not from a Blueprint, so `render.yaml` is inert — a hand-maintained mirror that Render never reads. Either adopt it as a real Blueprint (making the file authoritative, but risking a sync overwriting dashboard-only settings — needs a careful diff of file vs. dashboard first) or accept dashboard-as-source-of-truth permanently. Until then, every Render setting change is a manual two-step: dashboard first, then mirror into the file
 - [ ] Before pilot launch: publish the Google OAuth consent screen to production (Testing mode caps sign-ins at 100 allowlisted test users — see `docs/onboarding.md` §1.2)
 - [ ] Before pilot launch: stand up the daily ops check (spend/quota/error review — see `ai_specs/llm-integration.md` → Ops & Monitoring)

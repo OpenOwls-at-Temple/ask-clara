@@ -34,7 +34,7 @@ function renderHowItWorks() {
 describe("HowItWorks page", () => {
   afterEach(() => jest.clearAllMocks());
 
-  test("renders the six steps in order", () => {
+  test("renders the seven steps in order", () => {
     useProfile.mockReturnValue({ profile: null, loading: false });
     renderHowItWorks();
 
@@ -49,6 +49,7 @@ describe("HowItWorks page", () => {
       "Follow your 6-month plan",
       "Review matched job leads",
       "Create application materials",
+      "Prepare for the interview",
     ]);
   });
 
@@ -59,11 +60,11 @@ describe("HowItWorks page", () => {
     expect(markTutorialSeen).toHaveBeenCalledTimes(1);
   });
 
-  test("incomplete profile gates steps 2-6 and shows the get-started CTA", () => {
+  test("incomplete profile gates steps 2-7 and shows the get-started CTA", () => {
     useProfile.mockReturnValue({ profile: null, loading: false });
     renderHowItWorks();
 
-    expect(screen.getAllByText("Unlocks after step 1")).toHaveLength(5);
+    expect(screen.getAllByText("Unlocks after step 1")).toHaveLength(6);
 
     fireEvent.click(screen.getByText("Get Started — Build Your Profile →"));
     expect(screen.getByText("INTAKE PROBE")).toBeInTheDocument();

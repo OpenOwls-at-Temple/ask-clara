@@ -133,6 +133,41 @@ def build_posting_materials_context(
     }
 
 
+def build_interview_prep_context(
+    profile: dict,
+    target: dict,
+    resume_content: dict | None,
+) -> dict:
+    """Assemble context for one interview-prep call (Feature 9).
+
+    ``target`` is either one of the student's ranked roles (mode "role") or a
+    specific posting (mode "posting"); the posting description is bounded like
+    every other third-party text. The ranked roles come along so the prep can
+    be framed against the student's wider goals. No PII: resume_content is
+    already contact-stripped by the caller and the profile dict carries no
+    email/phone/first-gen status.
+    """
+    return {
+        "profile": {
+            "degree_level": profile.get("degree_level"),
+            "major_program": profile.get("major_program"),
+            "track": profile.get("track"),
+        },
+        "target_roles": [
+            {"rank": r["rank"], "title": r["title"]}
+            for r in sorted(profile.get("target_roles", []), key=lambda r: r["rank"])
+        ],
+        "target": {
+            "mode": target.get("mode"),
+            "title": target.get("title"),
+            "employer": target.get("employer"),
+            "description": (target.get("description") or "")[:MAX_POSTING_CHARS]
+            or None,
+        },
+        "resume_content": resume_content,
+    }
+
+
 def build_resume_context(
     profile: dict,
     resume_content: dict,
