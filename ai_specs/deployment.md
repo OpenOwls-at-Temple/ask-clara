@@ -93,11 +93,11 @@ Quick reference only:
 2. Set environment variables in the Render dashboard under *Environment*.
 3. First deploy may take 3–5 minutes.
 4. Check logs at `https://dashboard.render.com`.
-5. **Health check:** point Render's health-check path at `GET /api/health` — a lightweight probe that returns `{"status": "ok"}` with no DB calls, so it reports the app as live even if Mongo/Postgres are briefly unreachable.
+5. **Health check:** `healthCheckPath: /api/health` in `render.yaml` — a lightweight probe that returns `{"status": "ok"}` with no DB calls. Render polls it to gate zero-downtime deploys and to detect an unhealthy instance, so the probe must stay DB-free: if it touched Postgres or Mongo, a brief database outage would fail the check and cascade into a restart loop.
 
 ### Databases
 1. **Postgres (Supabase):** run migrations manually — `python -m alembic upgrade head`. Never edit the production schema directly; test migrations on staging first.
-2. **MongoDB (Atlas):** collections are created on first write; index `user_id` on each collection.
+2. **MongoDB (Atlas):** collections are created on first write; `user_id` is indexed on each collection by a **background task** at app startup. Index creation deliberately does not block boot: the driver waits out its full server-selection timeout (30s) when Mongo is unreachable, and the app accepts no connections until startup returns — so an inline await would make `/api/health` unreachable during exactly the outage the health check needs to survive.
 
 ---
 
