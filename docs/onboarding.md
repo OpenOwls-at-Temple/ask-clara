@@ -263,15 +263,24 @@ the production Supabase with the same commands and the production connection str
 | Component | Platform | Trigger | Notes |
 |-----------|----------|---------|-------|
 | Frontend | Vercel | Auto on push to `main` | `frontend/vercel.json` rewrites `/api/*` to the Render backend so the auth cookie stays first-party |
-| Backend | Render | Auto on push to `main` | `render.yaml` defines the service; secrets (`sync: false`) are set in the Render dashboard |
+| Backend | Render | Auto on push to `main` | The service is configured **in the Render dashboard**. `render.yaml` is a hand-maintained mirror, not the source of truth — see the warning below |
 | Postgres | Supabase | **Manual** (§5) | Never auto-migrated |
 | MongoDB | Atlas | Nothing to do | Collections/indexes created by app startup |
 
 Staging URL: **https://ask-clara-zeta.vercel.app**
 
-New environment variables are a **manual, owner-side step**: add them to `render.yaml`
-(with `sync: false` for secrets) and set the value in the Render dashboard *before* merging
-code that requires them. Same for Vercel env vars.
+> ⚠️ **`render.yaml` is not live.** The `clara-backend` service was created manually in the
+> dashboard rather than from a Blueprint (the Render account lists no Blueprints), so Render
+> never reads the file. Editing it changes nothing on the server. Every service setting —
+> env vars, health check path, build and start commands — must be changed in the Render
+> dashboard, with `render.yaml` updated by hand to match. Treat a setting as applied only
+> after you have seen it in the dashboard. Adopting the file as a real Blueprint is an open
+> decision (see `progress.md` → Up Next).
+
+New environment variables are a **manual, owner-side step**: set the value in the Render
+dashboard *before* merging code that requires it, and mirror the key into `render.yaml`
+(with `sync: false` for secrets) so the file stays an accurate record. The dashboard step is
+the one that takes effect; the file edit alone does nothing.
 
 ### Post-deploy smoke test (run after every staging deploy)
 

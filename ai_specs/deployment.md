@@ -93,7 +93,8 @@ Quick reference only:
 2. Set environment variables in the Render dashboard under *Environment*.
 3. First deploy may take 3–5 minutes.
 4. Check logs at `https://dashboard.render.com`.
-5. **Health check:** `healthCheckPath: /api/health` in `render.yaml` — a lightweight probe that returns `{"status": "ok"}` with no DB calls. Render polls it to gate zero-downtime deploys and to detect an unhealthy instance, so the probe must stay DB-free: if it touched Postgres or Mongo, a brief database outage would fail the check and cascade into a restart loop.
+5. **Health check:** set the health check path to `/api/health` at *Settings → Health Checks* in the dashboard — **not** in `render.yaml`, which Render does not read for this service (see step 6). `/api/health` returns `{"status": "ok"}` with no DB calls. Render polls it to gate deploys and detect an unhealthy instance, so the probe must stay DB-free: if it touched Postgres or Mongo, a brief database outage would fail the check and cascade into a restart loop. With no path configured Render falls back to a TCP port probe, which passes as soon as the port binds — even while the app is still in startup and refusing every request.
+6. **`render.yaml` is not authoritative.** The service was created by hand in the dashboard rather than from a Blueprint, so Render never reads the file; it is a hand-maintained mirror kept for reference and for a possible future Blueprint adoption. Change settings in the dashboard, then update the file to match.
 
 ### Databases
 1. **Postgres (Supabase):** run migrations manually — `python -m alembic upgrade head`. Never edit the production schema directly; test migrations on staging first.
