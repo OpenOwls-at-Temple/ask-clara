@@ -53,9 +53,11 @@ def test_refresh_token_rejected_as_access_token():
     assert exc_info.value.status_code == 401
 
 
-def test_legacy_access_token_without_type_still_decodes():
-    """Access tokens minted before the "type" claim existed carry no type; they must
-    keep decoding (self-healing within the 15-minute access-token lifetime)."""
+def test_access_token_without_type_claim_is_rejected():
+    """A token with no "type" claim must be rejected. The compatibility window for
+    tokens minted before the claim existed closed when they expired (15-minute
+    lifetime), so nothing legitimate reaches the decoder untyped any more — and
+    accepting untyped tokens indefinitely would leave the weaker check in place."""
     from datetime import datetime, timedelta, timezone
 
     from jose import jwt
@@ -65,10 +67,12 @@ def test_legacy_access_token_without_type_still_decodes():
 
     user_id = "00000000-0000-0000-0000-000000000002"
     exp = datetime.now(timezone.utc) + timedelta(minutes=5)
-    legacy = jwt.encode(
+    untyped = jwt.encode(
         {"sub": user_id, "exp": exp}, settings.jwt_secret, algorithm="HS256"
     )
-    assert decode_access_token(legacy) == user_id
+    with pytest.raises(HTTPException) as exc_info:
+        decode_access_token(untyped)
+    assert exc_info.value.status_code == 401
 
 
 @pytest.mark.asyncio

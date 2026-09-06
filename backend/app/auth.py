@@ -44,12 +44,10 @@ def decode_access_token(token: str) -> str:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
-    # Reject anything that isn't an access token (e.g. a refresh token presented
-    # as a Bearer credential). Tokens minted before the "type" claim existed carry
-    # no type and are treated as access tokens for backward compatibility; they
-    # self-heal within the 15-minute access-token lifetime.
-    token_type = payload.get("type", "access")
-    if token_type != "access":
+    # Require an explicit access type. A missing claim is rejected too, so a token
+    # is only usable as a Bearer credential if it was minted as one — no token
+    # shape can reach here by defaulting.
+    if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
         )
