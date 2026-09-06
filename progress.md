@@ -17,7 +17,7 @@
 Features 1–5 (Phase 1 MVP) are implemented and deployed to staging
 (https://ask-clara-zeta.vercel.app). Phase 2 is **feature-complete**: Features 6 (development
 plan), 7 (job leads scanning & alerts), 8 (posting-tailored materials), and 9 (interview prep
-guidance) are all built. Feature 9 is awaiting manual browser verification.
+guidance) are all built and browser-verified.
 
 ---
 
@@ -64,13 +64,13 @@ Full narrative in `docs/progress-archive.md`.
 - [x] 2026-07-17 — Onboarding tutorial ("How Clara works"): new `/how-it-works` page walking the six steps with profile-aware CTAs and step gating, Dashboard welcome-header link + one-time first-visit redirect (`utils/tutorial.js` localStorage flag); Jest + E2E coverage for the page, flag helper, and redirect; frontend-only, Phase 2 cross-cutting UX note added to `features.md`; browser-verified (PR #28)
 - [x] 2026-07-17 — Security checklist pass ("the 4 things"): audited secrets (none in code — env-var/`BaseSettings` pattern, no keys in frontend bundle), endpoint authz (every data route behind `get_current_user`; admin scan routes are constant-time shared-secret M2M), and cross-user IDOR (every by-id lookup scoped to the current user via `Profile.user_id` joins / Mongo `user_id` filters) — all clean. Closed the one gap: added Playwright **visual-regression** coverage of the 5 core pages (dashboard, intake, assessment, resumes, plan) against `LLM_PROVIDER=mock`, with committed **Linux** baselines generated in the `mcr.microsoft.com/playwright` container to match CI; dynamic run-timestamps masked. Runs automatically in the existing `e2e` CI job. Latent follow-ups logged (server-side role enforcement if counselor/admin endpoints ship; defensive scrub of `structured_json`) (`feature/visual-regression-tests`)
 - [x] 2026-07-23 — Auth hardening + liveness probe: access tokens now carry a `type: "access"` claim and `decode_access_token` rejects anything else, so a leaked refresh token can no longer authenticate a Bearer request (legacy no-`type` tokens are still accepted, self-healing within the 15-min lifetime); `get_current_user` now 401s instead of 500s on a non-UUID `sub`. Added `GET /api/health` (no DB calls) for Render health checks, and moved Mongo index creation off the deprecated `on_event("startup")` onto a `lifespan` handler that runs it as a **background task** — verified against a stopped Mongo container: awaiting it inline held the app in "waiting for application startup" for the driver's full 30s server-selection timeout, refusing every request including `/api/health`; backgrounded, health answers 200 immediately. `healthCheckPath: /api/health` added to `render.yaml` — later found to be inert, since the service is dashboard-created rather than Blueprint-managed, so the path still needs setting by hand (see Up Next); specs synced (`auth-security.md` token-type rule, `deployment.md` health-check step) (PR #31)
-- [x] 2026-09-06 — Feature 9: interview prep guidance — interview-prep agent (formats, focus areas, practice questions, questions to ask; structured outputs) against one target, either a ranked target role or a posting (manual, by link, or handed over from a job lead); `interview_preps` Mongo collection, quota-gated `/api/interview-prep*` + `/api/leads/:id/interview-prep`, `InterviewPrep.jsx` + "Prep for interview" on leads + dashboard card; no resume required and a failed posting fetch degrades rather than blocks; mock provider + E2E and visual coverage added; specs synced (Feature 9 ACs, API table, `interview_preps` shape, Prompt 6) (`feature/interview-prep`) — **awaiting browser verification**
+- [x] 2026-09-06 — Feature 9: interview prep guidance — interview-prep agent (formats, focus areas, practice questions, questions to ask; structured outputs) against one target, either a ranked target role or a posting (manual, by link, or handed over from a job lead); `interview_preps` Mongo collection, quota-gated `/api/interview-prep*` + `/api/leads/:id/interview-prep`, `InterviewPrep.jsx` + "Prep for interview" on leads + dashboard card; no resume required and a failed posting fetch degrades rather than blocks; mock provider + E2E and visual coverage added; specs synced (Feature 9 ACs, API table, `interview_preps` shape, Prompt 6) (`feature/interview-prep`) — browser-verified locally 2026-09-06
 
 ---
 
 ## In Progress
 
-- Feature 9 manual browser test (backend + frontend complete, all tests green).
+_Nothing currently in progress._
 
 ---
 
